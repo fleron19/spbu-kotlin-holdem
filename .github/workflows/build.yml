@@ -18,6 +18,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Gradle setup
+        uses: ./.github/actions/gradle-setup
+        
       - name: Run unit tests
         run: ./gradlew test
 
