@@ -22,7 +22,7 @@ jobs:
         uses: ./.github/actions/gradle-setup
 
       - name: Run unit tests
-        run: ./gradlew jvmTest
+        run: ./gradlew test
 
       - name: Upload test reports
         uses: actions/upload-artifact@v4
