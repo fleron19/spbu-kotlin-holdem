@@ -29,3 +29,9 @@ jobs:
         with:
           name: test-reports
           path: "**/build/reports/tests/"
+   ktlint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run ktlint
+        run: ./gradlew ktlintCheck
