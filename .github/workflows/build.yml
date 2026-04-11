@@ -20,7 +20,7 @@ jobs:
 
       - name: Gradle setup
         uses: ./.github/actions/gradle-setup
-        
+
       - name: Run unit tests
         run: ./gradlew test
 
@@ -29,9 +29,16 @@ jobs:
         with:
           name: test-reports
           path: "**/build/reports/tests/"
-   ktlint:
+
+  ktlint:
     name: Lint
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Gradle setup
+        uses: ./.github/actions/gradle-setup
+        
       - name: Run ktlint
         run: ./gradlew ktlintCheck
