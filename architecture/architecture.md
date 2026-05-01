@@ -35,6 +35,16 @@ classDiagram
         ALL_IN
     }
 
+    class Action {
+        <<enum>>
+        FOLD
+        CHECK
+        CALL
+        BET
+        RAISE
+        ALL_IN
+    }
+
     class GamePhase {
         <<enum>>
         WAITING
@@ -47,8 +57,8 @@ classDiagram
 
     %% Core classes
     class Card {
-        + suit: Suit
-        + rank: Rank
+        - suit: Suit
+        - rank: Rank
         + toString() String
     }
 
@@ -60,49 +70,45 @@ classDiagram
     }
 
     class Player {
-        + id: UUID
+        - id: UUID
         + name: String
-        + stack: Int
-        + hole: List~Card~
-        + status: PlayerStatus
+        - stack: Int
+        - hole: List~Card~
+        - status: PlayerStatus
         + receiveCard(c: Card) Unit
         + bet(amount: Int) Int
     }
 
     class Pot {
-        + total: Int
-        + contributions: Map~UUID, Int~
-        + sidePots: List~Pot~
-        + add(playerId: UUID, amount: Int) Unit
+        - total: Int
+        - contributions: Map~Player, Int~
+        - sidePots: List~Pot~
+        + add(player: Player, amount: Int) Unit
         + buildSidePots() Unit
-        + distributeWinners(winners: List~UUID~) Map~UUID, Int~
+        + distributeWinners(winners: List~Player~) Map~Player, Int~
     }
 
     class Hand {
-        + id: UUID
+        - id: UUID
         + phase: GamePhase
-        + deck: Deck
-        + players: List~Player~
-        + pot: Pot
-        + community: List~Card~
-        + actions: List~String~
+        - deck: Deck
+        +community: List~Card~
         + dealHole() Unit
         + dealCommunity(n: Int) Unit
-        + showdown() List~UUID~
+        + showdown() List~Player~
     }
 
     class Game {
-        + id: UUID
-        + players: List~Player~
-        + currentHand: Hand?
+        - id: UUID
+        - players: List~Player~
+        - currentHand: Hand?
         + addPlayer(p: Player) Unit
         + startHand() Hand
     }
 
     class ActionProcessor {
-        + validate(playerId: UUID, action: String, amount: Int) Boolean
-        + execute(playerId: UUID, action: String, amount: Int) Unit
-        + handleAllIn(playerId: UUID) Unit
+        + validate(player: Player, action: Action, amount: Int) Boolean
+        + execute(hand: Hand, player: Player, action: Action, amount: Int) Boolean
     }
 
     class HandEvaluator {
@@ -130,23 +136,24 @@ classDiagram
     }
 
     class Controller {
-        + storage: Storage
-        + logger: Logger
+        - storage: Storage
+        - logger: Logger
         + startGame() Unit
-        + playerAction(playerId: UUID, action: String, amount: Int) Unit
+        + playerAction(player: Player, action: Action, amount: Int) Unit
     }
 
     %% Relationships
     Game o-- Player : contains
-    Game --> Hand : currentHand
+    Game --> Hand : creates
+    Game o-- Pot : manages
     Hand o-- Deck : has
-    Hand o-- Pot : has
-    Hand o-- Player : players
-    Hand ..> HandEvaluator : uses
+    Hand o-- Pot : tracks
+    Hand ..> HandEvaluator : evaluates
+    Controller o-- Game : controls
     Controller --> Storage : uses
     Controller --> Logger : uses
     Controller --> ActionProcessor : uses
-    ActionProcessor --> Hand : accesses
-    ActionProcessor --> Pot : accesses
-    ActionProcessor --> Logger : uses
+    ActionProcessor --> Hand : modifies
+    ActionProcessor --> Pot : updates
+    ActionProcessor --> Logger : logs
     ActionProcessor ..> HandEvaluator : uses
