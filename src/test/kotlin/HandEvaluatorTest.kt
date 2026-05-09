@@ -11,7 +11,7 @@ class HandEvaluatorTest {
             UUID.randomUUID(),
             "Test",
             1000,
-            cards,
+            cards.toMutableList(),
         )
     }
 

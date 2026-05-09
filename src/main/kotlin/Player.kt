@@ -4,13 +4,14 @@ class Player(
     private val id: UUID,
     val name: String,
     private var stack: Int,
-    private val hole: List<Card> = listOf(),
+    private val hole: MutableList<Card> = mutableListOf(),
     private var status: PlayerStatus = PlayerStatus.ACTIVE,
 ) {
     fun getId(): UUID = id
     fun getStack(): Int = stack
     fun getStatus(): PlayerStatus = status
     fun getHole(): List<Card> = hole
+
     fun setStack(value: Int) {
         stack = value
     }
@@ -20,10 +21,12 @@ class Player(
     }
 
     fun receiveCard(c: Card) {
-        TODO()
+        hole.add(c)
     }
 
     fun bet(amount: Int): Int {
-        TODO()
+        val actualBet = minOf(amount, stack)
+        stack -= actualBet
+        return actualBet
     }
 }

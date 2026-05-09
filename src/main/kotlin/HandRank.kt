@@ -17,6 +17,17 @@ class HandRank(
         return 0
     }
 
+    override fun equals(other: Any?): Boolean {
+        if (other !is HandRank) return false
+        return category == other.category && compareTo(other) == 0
+    }
+
+    override fun hashCode(): Int {
+        var result = category
+        result = 31 * result + cards.hashCode()
+        return result
+    }
+
     private fun tiebreakRanks(): List<Int> {
         val ranks = cards.map { it.getRank().value }
         val counts = ranks.groupingBy { it }.eachCount()
