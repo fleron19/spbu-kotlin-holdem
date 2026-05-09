@@ -55,6 +55,20 @@ classDiagram
         SHOWDOWN
     }
 
+    class Combination {
+        <<enum>>
+        HIGH_CARD
+        ONE_PAIR
+        TWO_PAIR
+        THREE_OF_A_KIND
+        STRAIGHT
+        FLUSH
+        FULL_HOUSE
+        FOUR_OF_A_KIND
+        STRAIGHT_FLUSH
+        ROYAL_FLUSH
+    }
+
     %% Core classes
     class Card {
         - suit: Suit
@@ -92,7 +106,10 @@ classDiagram
         - id: UUID
         + phase: GamePhase
         - deck: Deck
-        +community: List~Card~
+        - players: MutableList~Player~
+        - pot: Pot
+        + community: List~Card~
+        - actions: MutableList~Action~
         + dealHole() Unit
         + dealCommunity(n: Int) Unit
         + showdown() List~Player~
@@ -117,7 +134,7 @@ classDiagram
     }
 
     class HandRank {
-        + category: String
+        + category: Int
         + cards: List~Card~
         + compareTo(other: HandRank) Int
     }
