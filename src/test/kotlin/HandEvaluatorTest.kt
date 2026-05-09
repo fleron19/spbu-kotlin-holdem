@@ -11,7 +11,7 @@ class HandEvaluatorTest {
             UUID.randomUUID(),
             "Test",
             1000,
-            cards
+            cards,
         )
     }
 
@@ -20,15 +20,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
-                Card(Suit.DIAMONDS, Rank.NINE)
-            )
+                Card(Suit.DIAMONDS, Rank.NINE),
+            ),
         )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.FIVE),
             Card(Suit.HEARTS, Rank.TWO),
             Card(Suit.DIAMONDS, Rank.THREE),
-            Card(Suit.CLUBS, Rank.FOUR)
+            Card(Suit.CLUBS, Rank.FOUR),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.HIGH_CARD.value, result.category)
@@ -39,15 +39,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.SEVEN),
-                Card(Suit.DIAMONDS, Rank.TWO)
-            )
+                Card(Suit.DIAMONDS, Rank.TWO),
+            ),
         )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.FIVE),
             Card(Suit.HEARTS, Rank.KING),
             Card(Suit.DIAMONDS, Rank.THREE),
-            Card(Suit.CLUBS, Rank.FOUR)
+            Card(Suit.CLUBS, Rank.FOUR),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.ONE_PAIR.value, result.category)
@@ -58,15 +58,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.ACE),
-                Card(Suit.DIAMONDS, Rank.ACE)
-            )
+                Card(Suit.DIAMONDS, Rank.ACE),
+            ),
         )
         val community = listOf(
             Card(Suit.CLUBS, Rank.KING),
             Card(Suit.SPADES, Rank.KING),
             Card(Suit.HEARTS, Rank.QUEEN),
             Card(Suit.DIAMONDS, Rank.THREE),
-            Card(Suit.CLUBS, Rank.FOUR)
+            Card(Suit.CLUBS, Rank.FOUR),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.TWO_PAIR.value, result.category)
@@ -77,15 +77,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.SEVEN),
-                Card(Suit.DIAMONDS, Rank.TWO)
-            )
+                Card(Suit.DIAMONDS, Rank.TWO),
+            ),
         )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.SEVEN),
             Card(Suit.HEARTS, Rank.KING),
             Card(Suit.DIAMONDS, Rank.THREE),
-            Card(Suit.CLUBS, Rank.FOUR)
+            Card(Suit.CLUBS, Rank.FOUR),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.THREE_OF_A_KIND.value, result.category)
@@ -96,15 +96,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.EIGHT),
-                Card(Suit.DIAMONDS, Rank.NINE)
-            )
+                Card(Suit.DIAMONDS, Rank.NINE),
+            ),
         )
         val community = listOf(
             Card(Suit.CLUBS, Rank.FIVE),
             Card(Suit.SPADES, Rank.SIX),
             Card(Suit.HEARTS, Rank.SEVEN),
             Card(Suit.DIAMONDS, Rank.TWO),
-            Card(Suit.CLUBS, Rank.THREE)
+            Card(Suit.CLUBS, Rank.THREE),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.STRAIGHT.value, result.category)
@@ -115,15 +115,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.ACE),
-                Card(Suit.DIAMONDS, Rank.FIVE)
-            )
+                Card(Suit.DIAMONDS, Rank.FIVE),
+            ),
         )
         val community = listOf(
             Card(Suit.CLUBS, Rank.TWO),
             Card(Suit.SPADES, Rank.THREE),
             Card(Suit.HEARTS, Rank.FOUR),
             Card(Suit.DIAMONDS, Rank.SIX),
-            Card(Suit.CLUBS, Rank.SEVEN)
+            Card(Suit.CLUBS, Rank.SEVEN),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.STRAIGHT.value, result.category)
@@ -134,15 +134,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
-                Card(Suit.HEARTS, Rank.TWO)
-            )
+                Card(Suit.HEARTS, Rank.TWO),
+            ),
         )
         val community = listOf(
             Card(Suit.HEARTS, Rank.FIVE),
             Card(Suit.HEARTS, Rank.SEVEN),
             Card(Suit.HEARTS, Rank.NINE),
             Card(Suit.DIAMONDS, Rank.THREE),
-            Card(Suit.CLUBS, Rank.FOUR)
+            Card(Suit.CLUBS, Rank.FOUR),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.FLUSH.value, result.category)
@@ -153,15 +153,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.SEVEN),
-                Card(Suit.DIAMONDS, Rank.FIVE)
-            )
+                Card(Suit.DIAMONDS, Rank.FIVE),
+            ),
         )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.SEVEN),
             Card(Suit.HEARTS, Rank.FIVE),
             Card(Suit.DIAMONDS, Rank.THREE),
-            Card(Suit.CLUBS, Rank.FOUR)
+            Card(Suit.CLUBS, Rank.FOUR),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.FULL_HOUSE.value, result.category)
@@ -172,15 +172,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.SEVEN),
-                Card(Suit.DIAMONDS, Rank.KING)
-            )
+                Card(Suit.DIAMONDS, Rank.KING),
+            ),
         )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.SEVEN),
             Card(Suit.HEARTS, Rank.SEVEN),
             Card(Suit.DIAMONDS, Rank.THREE),
-            Card(Suit.CLUBS, Rank.FOUR)
+            Card(Suit.CLUBS, Rank.FOUR),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.FOUR_OF_A_KIND.value, result.category)
@@ -191,15 +191,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.NINE),
-                Card(Suit.HEARTS, Rank.FIVE)
-            )
+                Card(Suit.HEARTS, Rank.FIVE),
+            ),
         )
         val community = listOf(
             Card(Suit.HEARTS, Rank.SIX),
             Card(Suit.HEARTS, Rank.SEVEN),
             Card(Suit.HEARTS, Rank.EIGHT),
             Card(Suit.DIAMONDS, Rank.TWO),
-            Card(Suit.CLUBS, Rank.THREE)
+            Card(Suit.CLUBS, Rank.THREE),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.STRAIGHT_FLUSH.value, result.category)
@@ -210,15 +210,15 @@ class HandEvaluatorTest {
         val player = makePlayer(
             listOf(
                 Card(Suit.HEARTS, Rank.ACE),
-                Card(Suit.HEARTS, Rank.KING)
-            )
+                Card(Suit.HEARTS, Rank.KING),
+            ),
         )
         val community = listOf(
             Card(Suit.HEARTS, Rank.TEN),
             Card(Suit.HEARTS, Rank.JACK),
             Card(Suit.HEARTS, Rank.QUEEN),
             Card(Suit.DIAMONDS, Rank.TWO),
-            Card(Suit.CLUBS, Rank.THREE)
+            Card(Suit.CLUBS, Rank.THREE),
         )
         val result = evaluator.bestHand(player, community)
         assertEquals(Combination.ROYAL_FLUSH.value, result.category)
@@ -242,11 +242,11 @@ class HandEvaluatorTest {
     fun `compare returns zero for identical hands`() {
         val hand1 = HandRank(
             Combination.ONE_PAIR.value,
-            listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.KING))
+            listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.KING)),
         )
         val hand2 = HandRank(
             Combination.ONE_PAIR.value,
-            listOf(Card(Suit.CLUBS, Rank.KING), Card(Suit.SPADES, Rank.KING))
+            listOf(Card(Suit.CLUBS, Rank.KING), Card(Suit.SPADES, Rank.KING)),
         )
         assertEquals(0, evaluator.compare(hand1, hand2))
     }
@@ -255,11 +255,11 @@ class HandEvaluatorTest {
     fun `compare uses kicker to break ties in same category`() {
         val hand1 = HandRank(
             Combination.ONE_PAIR.value,
-            listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.KING), Card(Suit.CLUBS, Rank.ACE))
+            listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.KING), Card(Suit.CLUBS, Rank.ACE)),
         )
         val hand2 = HandRank(
             Combination.ONE_PAIR.value,
-            listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.KING), Card(Suit.CLUBS, Rank.QUEEN))
+            listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.KING), Card(Suit.CLUBS, Rank.QUEEN)),
         )
         assertTrue(evaluator.compare(hand1, hand2) > 0)
     }

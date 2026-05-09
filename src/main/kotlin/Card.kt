@@ -1,6 +1,6 @@
 data class Card(
     private val suit: Suit,
-    private val rank: Rank
+    private val rank: Rank,
 ) {
     fun getSuit(): Suit = suit
     fun getRank(): Rank = rank

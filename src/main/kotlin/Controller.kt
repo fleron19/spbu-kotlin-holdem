@@ -1,6 +1,6 @@
 class Controller(
     val storage: Storage,
-    val logger: Logger
+    val logger: Logger,
 ) {
     fun startGame() {
         TODO()

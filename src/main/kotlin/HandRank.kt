@@ -1,6 +1,6 @@
 class HandRank(
     val category: Int,
-    val cards: List<Card>
+    val cards: List<Card>,
 ) : Comparable<HandRank> {
     override fun compareTo(other: HandRank): Int {
         val categoryCmp = category.compareTo(other.category)

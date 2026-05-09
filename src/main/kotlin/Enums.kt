@@ -2,7 +2,7 @@ enum class Suit(val code: Int) {
     HEARTS(0),
     DIAMONDS(1),
     CLUBS(2),
-    SPADES(3)
+    SPADES(3),
 }
 
 enum class Rank(val value: Int) {
@@ -18,7 +18,7 @@ enum class Rank(val value: Int) {
     JACK(11),
     QUEEN(12),
     KING(13),
-    ACE(14)
+    ACE(14),
 }
 
 enum class Combination(val value: Int) {
@@ -37,7 +37,7 @@ enum class Combination(val value: Int) {
 enum class PlayerStatus {
     ACTIVE,
     FOLDED,
-    ALL_IN
+    ALL_IN,
 }
 
 enum class GamePhase {
@@ -46,7 +46,7 @@ enum class GamePhase {
     FLOP,
     TURN,
     RIVER,
-    SHOWDOWN
+    SHOWDOWN,
 }
 
 enum class Action {
@@ -55,5 +55,5 @@ enum class Action {
     CALL,
     BET,
     RAISE,
-    ALL_IN
+    ALL_IN,
 }

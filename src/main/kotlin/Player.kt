@@ -5,7 +5,7 @@ class Player(
     val name: String,
     private var stack: Int,
     private val hole: List<Card> = listOf(),
-    private var status: PlayerStatus = PlayerStatus.ACTIVE
+    private var status: PlayerStatus = PlayerStatus.ACTIVE,
 ) {
     fun getId(): UUID = id
     fun getStack(): Int = stack

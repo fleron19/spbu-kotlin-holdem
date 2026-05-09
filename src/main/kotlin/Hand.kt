@@ -7,7 +7,7 @@ class Hand(
     private val players: MutableList<Player> = mutableListOf(),
     private val pot: Pot = Pot(),
     val community: List<Card> = listOf(),
-    private val actions: MutableList<Action> = mutableListOf()
+    private val actions: MutableList<Action> = mutableListOf(),
 ) {
     fun dealHole() {
         TODO()
