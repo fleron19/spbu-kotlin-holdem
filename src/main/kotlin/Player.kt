@@ -11,8 +11,13 @@ class Player(
     fun getStack(): Int = stack
     fun getStatus(): PlayerStatus = status
     fun getHole(): List<Card> = hole
-    fun setStack(value: Int) { stack = value }
-    fun setStatus(value: PlayerStatus) { status = value }
+    fun setStack(value: Int) {
+        stack = value
+    }
+
+    fun setStatus(value: PlayerStatus) {
+        status = value
+    }
 
     fun receiveCard(c: Card) {
         TODO()

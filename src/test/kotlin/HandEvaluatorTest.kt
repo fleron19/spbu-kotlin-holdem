@@ -17,10 +17,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns HIGH_CARD for no combination`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.KING),
-            Card(Suit.DIAMONDS, Rank.NINE)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.KING),
+                Card(Suit.DIAMONDS, Rank.NINE)
+            )
+        )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.FIVE),
@@ -34,10 +36,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns ONE_PAIR for single pair`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.SEVEN),
-            Card(Suit.DIAMONDS, Rank.TWO)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.SEVEN),
+                Card(Suit.DIAMONDS, Rank.TWO)
+            )
+        )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.FIVE),
@@ -51,10 +55,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns TWO_PAIR for two pairs`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.ACE),
-            Card(Suit.DIAMONDS, Rank.ACE)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.ACE),
+                Card(Suit.DIAMONDS, Rank.ACE)
+            )
+        )
         val community = listOf(
             Card(Suit.CLUBS, Rank.KING),
             Card(Suit.SPADES, Rank.KING),
@@ -68,10 +74,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns THREE_OF_A_KIND for three of a kind`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.SEVEN),
-            Card(Suit.DIAMONDS, Rank.TWO)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.SEVEN),
+                Card(Suit.DIAMONDS, Rank.TWO)
+            )
+        )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.SEVEN),
@@ -85,10 +93,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns STRAIGHT for consecutive ranks`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.EIGHT),
-            Card(Suit.DIAMONDS, Rank.NINE)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.EIGHT),
+                Card(Suit.DIAMONDS, Rank.NINE)
+            )
+        )
         val community = listOf(
             Card(Suit.CLUBS, Rank.FIVE),
             Card(Suit.SPADES, Rank.SIX),
@@ -102,10 +112,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns ACE_LOW_STRAIGHT for A-2-3-4-5`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.ACE),
-            Card(Suit.DIAMONDS, Rank.FIVE)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.ACE),
+                Card(Suit.DIAMONDS, Rank.FIVE)
+            )
+        )
         val community = listOf(
             Card(Suit.CLUBS, Rank.TWO),
             Card(Suit.SPADES, Rank.THREE),
@@ -119,10 +131,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns FLUSH for five same suit`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.KING),
-            Card(Suit.HEARTS, Rank.TWO)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.KING),
+                Card(Suit.HEARTS, Rank.TWO)
+            )
+        )
         val community = listOf(
             Card(Suit.HEARTS, Rank.FIVE),
             Card(Suit.HEARTS, Rank.SEVEN),
@@ -136,10 +150,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns FULL_HOUSE for three plus pair`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.SEVEN),
-            Card(Suit.DIAMONDS, Rank.FIVE)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.SEVEN),
+                Card(Suit.DIAMONDS, Rank.FIVE)
+            )
+        )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.SEVEN),
@@ -153,10 +169,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns FOUR_OF_A_KIND for four same rank`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.SEVEN),
-            Card(Suit.DIAMONDS, Rank.KING)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.SEVEN),
+                Card(Suit.DIAMONDS, Rank.KING)
+            )
+        )
         val community = listOf(
             Card(Suit.CLUBS, Rank.SEVEN),
             Card(Suit.SPADES, Rank.SEVEN),
@@ -170,10 +188,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns STRAIGHT_FLUSH for straight and flush`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.NINE),
-            Card(Suit.HEARTS, Rank.FIVE)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.NINE),
+                Card(Suit.HEARTS, Rank.FIVE)
+            )
+        )
         val community = listOf(
             Card(Suit.HEARTS, Rank.SIX),
             Card(Suit.HEARTS, Rank.SEVEN),
@@ -187,10 +207,12 @@ class HandEvaluatorTest {
 
     @Test
     fun `bestHand returns ROYAL_FLUSH for 10-J-Q-K-A same suit`() {
-        val player = makePlayer(listOf(
-            Card(Suit.HEARTS, Rank.ACE),
-            Card(Suit.HEARTS, Rank.KING)
-        ))
+        val player = makePlayer(
+            listOf(
+                Card(Suit.HEARTS, Rank.ACE),
+                Card(Suit.HEARTS, Rank.KING)
+            )
+        )
         val community = listOf(
             Card(Suit.HEARTS, Rank.TEN),
             Card(Suit.HEARTS, Rank.JACK),

@@ -8,7 +8,8 @@ class HandEvaluator {
         for (i in allCards.indices) {
             for (j in i + 1 until allCards.size) {
                 val fiveCards = allCards.filterIndexed { index, _ -> index != i && index != j }
-                val rank = HandRank(detectCombination(fiveCards).value, fiveCards.sortedByDescending { it.getRank().value })
+                val rank =
+                    HandRank(detectCombination(fiveCards).value, fiveCards.sortedByDescending { it.getRank().value })
                 if (bestRank == null || rank > bestRank) {
                     bestRank = rank
                 }
@@ -30,22 +31,31 @@ class HandEvaluator {
         return when {
             isFlush && isStraight && cards.any { it.getRank().value == 14 } && cards.any { it.getRank().value == 13 } ->
                 Combination.ROYAL_FLUSH
+
             isFlush && isStraight ->
                 Combination.STRAIGHT_FLUSH
+
             counts.contains(4) ->
                 Combination.FOUR_OF_A_KIND
+
             counts.contains(3) && counts.contains(2) ->
                 Combination.FULL_HOUSE
+
             isFlush ->
                 Combination.FLUSH
+
             isStraight ->
                 Combination.STRAIGHT
+
             counts.contains(3) ->
                 Combination.THREE_OF_A_KIND
+
             counts.count { it == 2 } == 2 ->
                 Combination.TWO_PAIR
+
             counts.contains(2) ->
                 Combination.ONE_PAIR
+
             else ->
                 Combination.HIGH_CARD
         }
