@@ -87,7 +87,7 @@ classDiagram
         - id: UUID
         + name: String
         - stack: Int
-        - hole: List~Card~
+        - hole: MutableList~Card~
         - status: PlayerStatus
         + receiveCard(c: Card) Unit
         + bet(amount: Int) Int
@@ -112,6 +112,7 @@ classDiagram
         - actions: MutableList~Action~
         + dealHole() Unit
         + dealCommunity(n: Int) Unit
+        + addCommunityCard(card: Card) Unit
         + showdown() List~Player~
     }
 
