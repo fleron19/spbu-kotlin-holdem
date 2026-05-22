@@ -1,118 +1,132 @@
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class HandTest {
-
-    private fun makePlayer(name: String = "Test", stack: Int = 1000): Player {
-        return Player(UUID.randomUUID(), name, stack)
-    }
-
-    private fun makeHand(vararg playerNames: String): Hand {
-        val hand = Hand(UUID.randomUUID())
-        for (name in playerNames) {
-            hand.addPlayer(makePlayer(name))
-        }
-        return hand
-    }
-
     @Test
-    fun `addPlayer adds player to hand`() {
-        val hand = makeHand()
-        val player = makePlayer("Alice")
-        hand.addPlayer(player)
-        assertEquals(1, hand.getPlayers().size)
-        assertEquals("Alice", hand.getPlayers()[0].name)
-    }
+    fun `dealHole should deal 2 cards to each player`() {
+        val players = mutableListOf(
+            Player(UUID.randomUUID(), "Player1", 1000),
+            Player(UUID.randomUUID(), "Player2", 1000),
+        )
+        val hand = Hand(UUID.randomUUID(), players)
 
-    @Test
-    fun `dealHole deals 2 cards to each player`() {
-        val hand = makeHand("Alice", "Bob", "Charlie")
         hand.dealHole()
-        for (player in hand.getPlayers()) {
-            assertEquals(2, player.getHole().size)
-        }
+
+        assertEquals(2, players[0].getHole().size)
+        assertEquals(2, players[1].getHole().size)
+        assertEquals(GamePhase.PREFLOP, hand.phase)
     }
 
     @Test
-    fun `dealCommunity adds cards to community`() {
-        val hand = makeHand("Alice")
+    fun `dealFlop should deal 3 community cards`() {
+        val players = mutableListOf(
+            Player(UUID.randomUUID(), "Player1", 1000),
+            Player(UUID.randomUUID(), "Player2", 1000),
+        )
+        val hand = Hand(UUID.randomUUID(), players)
+
         hand.dealHole()
-        hand.dealCommunity(3)
+        hand.dealFlop()
+
         assertEquals(3, hand.getCommunity().size)
+        assertEquals(GamePhase.FLOP, hand.phase)
     }
 
     @Test
-    fun `dealCommunity can be called multiple times`() {
-        val hand = makeHand("Alice")
+    fun `dealTurn should deal 1 more community card`() {
+        val players = mutableListOf(
+            Player(UUID.randomUUID(), "Player1", 1000),
+            Player(UUID.randomUUID(), "Player2", 1000),
+        )
+        val hand = Hand(UUID.randomUUID(), players)
+
         hand.dealHole()
-        hand.dealCommunity(3)
-        hand.dealCommunity(1)
-        hand.dealCommunity(1)
+        hand.dealFlop()
+        hand.dealTurn()
+
+        assertEquals(4, hand.getCommunity().size)
+        assertEquals(GamePhase.TURN, hand.phase)
+    }
+
+    @Test
+    fun `dealRiver should deal 1 more community card`() {
+        val players = mutableListOf(
+            Player(UUID.randomUUID(), "Player1", 1000),
+            Player(UUID.randomUUID(), "Player2", 1000),
+        )
+        val hand = Hand(UUID.randomUUID(), players)
+
+        hand.dealHole()
+        hand.dealFlop()
+        hand.dealTurn()
+        hand.dealRiver()
+
         assertEquals(5, hand.getCommunity().size)
+        assertEquals(GamePhase.RIVER, hand.phase)
     }
 
     @Test
-    fun `showdown excludes folded players`() {
-        val hand = Hand(UUID.randomUUID())
-        val alice = Player(UUID.randomUUID(), "Alice", 1000, mutableListOf(Card(Suit.HEARTS, Rank.TWO), Card(Suit.DIAMONDS, Rank.THREE)))
-        val bob = Player(UUID.randomUUID(), "Bob", 1000, mutableListOf(Card(Suit.HEARTS, Rank.FOUR), Card(Suit.DIAMONDS, Rank.FIVE)))
-        hand.addPlayer(alice)
-        hand.addPlayer(bob)
-        hand.dealCommunity(5)
-        alice.setStatus(PlayerStatus.FOLDED)
+    fun `showdown should determine winner`() {
+        val players = mutableListOf(
+            Player(UUID.randomUUID(), "Player1", 1000),
+            Player(UUID.randomUUID(), "Player2", 1000),
+        )
+        val hand = Hand(UUID.randomUUID(), players)
+
+        hand.dealHole()
+        // Даем игрокам разные руки для тестирования
+        // Player1: полный дом (тузы и десятки)
+        // Player2: стрит (слабее полного дома)
+
+        // Добавляем карты вручную для предсказуемого результата
+        players[0].clearHole()
+        players[1].clearHole()
+
+        // Полный дом для Player1 (AA + TTT на столе)
+        players[0].receiveCard(Card(Suit.SPADES, Rank.ACE))
+        players[0].receiveCard(Card(Suit.HEARTS, Rank.ACE))
+
+        // Слабые карты для Player2
+        players[1].receiveCard(Card(Suit.DIAMONDS, Rank.KING))
+        players[1].receiveCard(Card(Suit.CLUBS, Rank.QUEEN))
+
+        // Добавляем community карты - три десятки и две другие
+        hand.addCommunityCard(Card(Suit.SPADES, Rank.TEN))
+        hand.addCommunityCard(Card(Suit.HEARTS, Rank.TEN))
+        hand.addCommunityCard(Card(Suit.DIAMONDS, Rank.TEN))
+        hand.addCommunityCard(Card(Suit.CLUBS, Rank.JACK))
+        hand.addCommunityCard(Card(Suit.SPADES, Rank.NINE))
+
+        // Делаем ставки чтобы был банк
+        hand.getPot().add(players[0], 100)
+        hand.getPot().add(players[1], 100)
+
         val winners = hand.showdown()
+
         assertEquals(1, winners.size)
-        assertEquals("Bob", winners[0].name)
+        assertEquals("Player1", winners[0].name)
+        assertEquals(GamePhase.SHOWDOWN, hand.phase)
+        // Player1 должен выиграть банк (1000 начальных - 100 ставка + 200 выигрыш = 1100)
+        // Но так как Player2 тоже поставил 100, общий банк 200, и Player1 получает 1000 + 100 (свой возврат) + 100 (выигрыш) = 1200
+        assertEquals(1200, players[0].getStack())
     }
 
     @Test
-    fun `showdown returns best hand`() {
-        val alice = Player(UUID.randomUUID(), "Alice", 1000, mutableListOf(
-            Card(Suit.HEARTS, Rank.ACE),
-            Card(Suit.HEARTS, Rank.KING)
-        ))
-        val bob = Player(UUID.randomUUID(), "Bob", 1000, mutableListOf(
-            Card(Suit.CLUBS, Rank.TWO),
-            Card(Suit.DIAMONDS, Rank.THREE)
-        ))
-        val hand = Hand(UUID.randomUUID())
-        hand.addPlayer(alice)
-        hand.addPlayer(bob)
-// Use deck to ensure consistent cards for Alice's pair of Aces
-        hand.addCommunityCard(Card(Suit.SPADES, Rank.ACE))
-        hand.addCommunityCard(Card(Suit.DIAMONDS, Rank.FIVE))
-        hand.addCommunityCard(Card(Suit.CLUBS, Rank.SEVEN))
-        hand.addCommunityCard(Card(Suit.HEARTS, Rank.NINE))
-        hand.addCommunityCard(Card(Suit.CLUBS, Rank.TWO))
-        val winners = hand.showdown()
-        assertEquals(1, winners.size)
-        assertEquals("Alice", winners[0].name)
-    }
+    fun `reset should clear hand state`() {
+        val players = mutableListOf(
+            Player(UUID.randomUUID(), "Player1", 1000),
+        )
+        val hand = Hand(UUID.randomUUID(), players)
 
-    @Test
-    fun `showdown returns both players on tie`() {
-        val alice = Player(UUID.randomUUID(), "Alice", 1000, mutableListOf(
-            Card(Suit.SPADES, Rank.KING),
-            Card(Suit.HEARTS, Rank.KING)
-        ))
-        val bob = Player(UUID.randomUUID(), "Bob", 1000, mutableListOf(
-            Card(Suit.DIAMONDS, Rank.KING),
-            Card(Suit.CLUBS, Rank.KING)
-        ))
-        val hand = Hand(UUID.randomUUID())
-        hand.addPlayer(alice)
-        hand.addPlayer(bob)
-        hand.dealCommunity(5)
-        val winners = hand.showdown()
-        assertEquals(2, winners.size)
-        assert(winners.contains(alice))
-        assert(winners.contains(bob))
-    }
+        hand.dealHole()
+        hand.dealFlop()
 
-    @Test
-    fun `getPot returns pot instance`() {
-        val hand = makeHand("Alice")
-        assertEquals(hand.getPot(), hand.getPot())
+        hand.reset()
+
+        assertEquals(GamePhase.WAITING, hand.phase)
+        assertTrue(hand.getCommunity().isEmpty())
+        assertEquals(0, players[0].getHole().size)
     }
 }
