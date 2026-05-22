@@ -122,7 +122,7 @@ classDiagram
         - dealerIndex: Int
         - currentPlayerIndex: Int
         - endedEarly: Boolean
-        + phase: GamePhase { private set }
+        + phase: GamePhase
         + getId() UUID
         + getPlayers() List~Player~
         + getCommunity() List~Card~
@@ -182,17 +182,20 @@ classDiagram
     }
 
     %% Interfaces
-    interface Logger {
+    class Logger {
+        <<interface>>
         + info(msg: String) Unit
         + error(msg: String) Unit
     }
 
-    interface Storage {
+    class Storage {
+        <<interface>>
         + saveGame(g: Game) Unit
         + loadGame(id: UUID) Game?
     }
 
-    interface View {
+    class View {
+        <<interface>>
         + printWelcome() Unit
         + printGameInfo(game: Game) Unit
         + printBlindsConfigured(smallBlind: Int, bigBlind: Int) Unit
