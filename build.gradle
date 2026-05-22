@@ -2,6 +2,7 @@ plugins {
     id "org.jetbrains.kotlin.jvm" version "1.9.22"
     id "org.jlleitschuh.gradle.ktlint" version "12.1.1"
     id "com.github.johnrengelman.shadow" version "8.1.1"
+    id "application"
 }
 
 repositories {
@@ -23,11 +24,12 @@ kotlin {
     jvmToolchain(17)
 }
 
-// CLI run task (default)
-tasks.register("run", JavaExec) {
-    group = "application"
-    description = "Run the CLI application"
-    classpath = sourceSets.main.runtimeClasspath
+// Application plugin configuration
+application {
     mainClass = "MainKt"
+}
+
+// Configure run task to use stdin
+tasks.named("run", JavaExec) {
     standardInput = System.in
 }
