@@ -1,13 +1,13 @@
 class Logger {
     fun log(level: String, msg: String) {
-        TODO()
+        println("[$level] $msg")
     }
 
     fun info(msg: String) {
-        TODO()
+        log("INFO", msg)
     }
 
     fun error(msg: String) {
-        TODO()
+        log("ERROR", msg)
     }
 }
