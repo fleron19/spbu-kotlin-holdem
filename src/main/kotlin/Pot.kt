@@ -1,13 +1,17 @@
 class Pot {
     private var total: Int = 0
     private val contributions: MutableMap<Player, Int> = mutableMapOf()
-    private val sidePots: MutableList<Pot> = mutableListOf()
+    private val sidePots: MutableList<SidePot> = mutableListOf()
+
+    data class SidePot(
+        val eligiblePlayers: MutableSet<Player> = mutableSetOf(),
+        var amount: Int = 0,
+    )
 
     fun add(player: Player, amount: Int) {
-        val actualBet = minOf(amount, player.getStack())
-        if (actualBet > 0) {
-            contributions[player] = (contributions[player] ?: 0) + actualBet
-            total += actualBet
+        if (amount > 0) {
+            contributions[player] = (contributions[player] ?: 0) + amount
+            total += amount
         }
     }
 
@@ -15,26 +19,42 @@ class Pot {
 
     fun getContributions(): Map<Player, Int> = contributions
 
-    fun buildSidePots() {
-        // Упрощённая версия - пока без side pots для простоты
-        // В полной версии нужно сортировать игроков по стеку и создавать side pots
-        sidePots.clear()
-        val sortedPlayers = contributions.entries.sortedBy { it.value }
-        if (sortedPlayers.size < 2) return
+    fun getSidePots(): List<SidePot> = sidePots.toList()
 
+    fun buildSidePots(players: List<Player>) {
+        sidePots.clear()
+        
+        // Сортируем игроков по вкладу в банк (все игроки, включая фолднувших)
+        val sortedByContribution = contributions.entries
+            .filter { it.value > 0 }
+            .sortedBy { it.value }
+        
+        if (sortedByContribution.isEmpty()) return
+        
+        // Находим все уникальные уровни вкладов
+        val uniqueLevels = sortedByContribution.map { it.value }.distinct().sorted()
+        
         var previousAmount = 0
-        for ((i, entry) in sortedPlayers.withIndex()) {
-            if (entry.value > previousAmount) {
-                val sidePot = Pot()
-                for ((p, amt) in contributions) {
-                    val sideAmount = minOf(amt - previousAmount, entry.value - previousAmount)
-                    if (sideAmount > 0) {
-                        sidePot.add(p, sideAmount)
-                    }
-                }
-                sidePots.add(sidePot)
-                previousAmount = entry.value
+        for (level in uniqueLevels) {
+            val sidePot = SidePot()
+            val levelAmount = level - previousAmount
+            
+            // Игроки на этом уровне и выше
+            val playersAtOrAbove = sortedByContribution.filter { it.value >= level }
+            val playersEligible = playersAtOrAbove.filter { 
+                it.key.getStatus() != PlayerStatus.FOLDED 
+            }.map { it.key }
+            
+            // Сумма: разница уровня * количество ВСЕХ игроков на этом уровне и выше
+            val totalAmount = levelAmount * playersAtOrAbove.size
+            
+            for (p in playersEligible) {
+                sidePot.eligiblePlayers.add(p)
             }
+            sidePot.amount = totalAmount
+            
+            sidePots.add(sidePot)
+            previousAmount = level
         }
     }
 
@@ -45,19 +65,19 @@ class Pot {
             return winners.associateWith { share }
         }
 
-        // Распределение по side pots
         val result = mutableMapOf<Player, Int>()
-        var previousAmount = 0
-        for ((idx, sidePot) in sidePots.withIndex()) {
-            val activeWinners = winners.filter { contributions[it] ?: 0 > previousAmount }
-            if (activeWinners.isNotEmpty()) {
-                val share = sidePot.total / activeWinners.size
-                for (w in activeWinners) {
+        
+        // Распределяем каждый side pot среди победителей, которые в нём участвовали
+        for (sidePot in sidePots) {
+            val eligibleWinners = winners.filter { sidePot.eligiblePlayers.contains(it) }
+            if (eligibleWinners.isNotEmpty()) {
+                val share = sidePot.amount / eligibleWinners.size
+                for (w in eligibleWinners) {
                     result[w] = (result[w] ?: 0) + share
                 }
             }
-            previousAmount = sidePot.contributions.values.minOrNull() ?: previousAmount
         }
+        
         return result
     }
 

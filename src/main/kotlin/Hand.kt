@@ -13,6 +13,7 @@ class Hand(
     private var currentBet: Int = 0
     private var dealerIndex: Int = 0
     private var currentPlayerIndex: Int = 0
+    private var endedEarly: Boolean = false
 
     fun getId(): UUID = id
     fun getPlayers(): List<Player> = players
@@ -27,6 +28,7 @@ class Hand(
     fun setCurrentPlayerIndex(index: Int) {
         currentPlayerIndex = index
     }
+    fun isEndedEarly(): Boolean = endedEarly
 
     fun dealHole() {
         deck.reset()
@@ -86,6 +88,9 @@ class Hand(
         val bestRank = rankings.values.maxByOrNull { it }!!
         val winners = rankings.filter { it.value == bestRank }.keys.toList()
 
+        // Строим side pots перед распределением
+        pot.buildSidePots(players)
+        
         val winnings = pot.distributeWinners(winners)
         for ((player, amount) in winnings) {
             player.setStack(player.getStack() + amount)
@@ -93,6 +98,17 @@ class Hand(
 
         pot.reset()
         return winners
+    }
+
+    fun endHandEarly(winner: Player?) {
+        phase = GamePhase.SHOWDOWN
+        endedEarly = true
+        if (winner != null) {
+            // Победитель получает весь банк
+            val totalPot = pot.getTotal()
+            winner.setStack(winner.getStack() + totalPot)
+            pot.reset()
+        }
     }
 
     fun reset() {

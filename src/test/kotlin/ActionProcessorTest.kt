@@ -115,4 +115,40 @@ class ActionProcessorTest {
 
         assertEquals(PlayerStatus.ALL_IN, player.getStatus())
     }
+
+    @Test
+    fun `execute ALL_IN should bet all remaining chips`() {
+        val player = Player(UUID.randomUUID(), "Test", 250)
+        val players = mutableListOf(player)
+        val hand = Hand(UUID.randomUUID(), players)
+        hand.dealHole()
+
+        processor.execute(hand, player, Action.ALL_IN, 0)
+
+        assertEquals(0, player.getStack())
+        assertEquals(250, hand.getPot().getTotal())
+        assertEquals(250, hand.getPot().getContributions()[player])
+        assertEquals(PlayerStatus.ALL_IN, player.getStatus())
+    }
+
+    @Test
+    fun `ALL_IN should update currentBet`() {
+        val player1 = Player(UUID.randomUUID(), "Player1", 1000)
+        val player2 = Player(UUID.randomUUID(), "Player2", 500)
+        val players = mutableListOf(player1, player2)
+        val hand = Hand(UUID.randomUUID(), players)
+        hand.dealHole()
+
+        // Player1 ставит 100
+        processor.execute(hand, player1, Action.BET, 100)
+        assertEquals(100, hand.getCurrentBet())
+
+        // Player2 идет all-in со 150 (меньше чем currentBet)
+        player2.setStack(150)
+        processor.execute(hand, player2, Action.ALL_IN, 0)
+        
+        // currentBet должен быть обновлен до 150 (вклад player2)
+        assertEquals(150, hand.getCurrentBet())
+        assertEquals(PlayerStatus.ALL_IN, player2.getStatus())
+    }
 }

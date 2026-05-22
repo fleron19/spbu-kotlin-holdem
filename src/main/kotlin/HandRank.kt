@@ -30,7 +30,7 @@ class HandRank(
     }
 
     private fun tiebreakKey(): List<Int> {
-        val ranks = cards.map { it.getRank().value }
+        val ranks = cards.map { it.rank.value }
         val counts = ranks.groupingBy { it }.eachCount()
 
         return when (category) {

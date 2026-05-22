@@ -16,11 +16,13 @@ class PotTest {
     }
 
     @Test
-    fun `add should not exceed player stack`() {
+    fun `add should add requested amount (caller must limit by stack)`() {
         val pot = Pot()
         val player = Player(UUID.randomUUID(), "Test", 50)
 
-        pot.add(player, 100)
+        // caller должен сам ограничить сумму стеком игрока
+        val actualBet = minOf(100, player.getStack())
+        pot.add(player, actualBet)
 
         assertEquals(50, pot.getTotal())
     }

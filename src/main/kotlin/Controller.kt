@@ -13,20 +13,22 @@ class Controller(
     fun startGame() {
         view.printWelcome()
 
-        println("\nConfigure blinds:")
-        print("Enter small blind amount: ")
-        smallBlind = readLine()?.trim()?.toIntOrNull() ?: 50
-        print("Enter big blind amount: ")
-        bigBlind = readLine()?.trim()?.toIntOrNull() ?: 100
+        smallBlind = view.readBlindAmount("small blind", 50)
+        bigBlind = view.readBlindAmount("big blind", 100)
 
         game = Game()
         var playerCount = 0
 
         while (true) {
+            if (playerCount >= 9) {
+                view.printMessage("Maximum 10 players reached!")
+                break
+            }
+            
             playerCount++
-            view.printMessage("\nPlayer $playerCount:")
+            view.printPlayerSetupHeader(playerCount)
             val name = view.readPlayerName()
-            val stack = view.readPlayerStack()
+            val stack = view.readPositiveInt("Enter starting stack", 1000)
             val player = Player(UUID.randomUUID(), name, stack)
             game?.addPlayer(player)
             logger.info("Added player: ${player.name} with ${player.getStack()} chips")
@@ -34,13 +36,32 @@ class Controller(
             if (!view.askAddPlayer()) break
         }
 
+        while (game?.getPlayers()?.size ?: 0 < 2) {
+            view.printError("Minimum 2 players required!")
+            playerCount++
+            view.printPlayerSetupHeader(playerCount)
+            val name = view.readPlayerName()
+            val stack = view.readPositiveInt("Enter starting stack", 1000)
+            val player = Player(UUID.randomUUID(), name, stack)
+            game?.addPlayer(player)
+            logger.info("Added player: ${player.name} with ${player.getStack()} chips")
+        }
+
         view.printGameInfo(game!!)
-        view.printMessage("\nGame configured! Blinds: $smallBlind/$bigBlind")
+        view.printBlindsConfigured(smallBlind, bigBlind)
     }
 
     fun startHand() {
+        logger.info("Controller.startHand() called, game=${game != null}, players=${game?.getPlayers()?.size}")
         if (game == null || game?.getPlayers()?.isEmpty() == true) {
+            logger.error("Controller.startHand(): Game not initialized")
             view.printError("Game not initialized")
+            return
+        }
+
+        // Проверка: игра уже окончена
+        if (isGameEnded()) {
+            view.printGameAlreadyEnded()
             return
         }
 
@@ -60,24 +81,29 @@ class Controller(
 
         // Префлоп: первый ход после BB
         val preFlopStartIndex = (bbIndex + 1) % players.size
-        runBettingRound(hand, preFlopStartIndex, isPreFlop = true)
-
+        val preFlopOver = runBettingRound(hand, preFlopStartIndex, isPreFlop = true)
+        
+        // Если все фолднули кроме одного, переходим к showdown
+        if (preFlopOver && hand.phase == GamePhase.SHOWDOWN) {
+            handleShowdown(hand)
+            return
+        }
+        
         // Постфлоп: Флоп, Терн, Ривер
         while (hand.phase != GamePhase.SHOWDOWN) {
             when (hand.phase) {
                 GamePhase.PREFLOP -> {
-                    println("\nDealing Flop...")
+                    view.dealFlop()
                     hand.dealFlop()
                 }
                 GamePhase.FLOP -> {
-                    println("\nDealing Turn...")
+                    view.dealTurn()
                     hand.dealTurn()
                 }
                 GamePhase.TURN -> {
-                    println("\nDealing River...")
+                    view.dealRiver()
                     hand.dealRiver()
                 }
-                GamePhase.RIVER -> break
                 else -> break
             }
 
@@ -87,10 +113,32 @@ class Controller(
             val startIndexCandidate = (hand.getDealerIndex() + 1) % players.size
             val postFlopStartIndex = findFirstActive(hand, startIndexCandidate)
             if (postFlopStartIndex == -1) break
-            runBettingRound(hand, postFlopStartIndex, isPreFlop = false)
+            
+            val postFlopOver = runBettingRound(hand, postFlopStartIndex, isPreFlop = false)
+            if (postFlopOver) {
+                // Раунд завершён - либо все фолднули, либо все уравняли
+                if (hand.phase == GamePhase.SHOWDOWN) {
+                    // Все фолднули, winner decided
+                    handleShowdown(hand)
+                    return
+                }
+                // Все уравняли, продолжаем к следующей улице
+            }
         }
 
+        // Обычный showdown после ривера
         handleShowdown(hand)
+        
+        // Проверка: игра окончена, если остался только один игрок с фишками
+        if (isGameEnded()) {
+            view.printGameEnded()
+            return
+        }
+    }
+
+    private fun isGameEnded(): Boolean {
+        val playersWithChips = game?.getPlayers()?.filter { it.getStack() > 0 } ?: emptyList()
+        return playersWithChips.size <= 1
     }
 
     private fun placeBlind(player: Player, amount: Int, hand: Hand) {
@@ -107,7 +155,11 @@ class Controller(
         var iterations = 0
         while (iterations < players.size) {
             val p = players[index]
-            if (p.getStatus() != PlayerStatus.FOLDED && p.getStatus() != PlayerStatus.OUT) {
+            // Пропускаем фолднувших, OUT и игроков с 0 фишек
+            if (p.getStatus() != PlayerStatus.FOLDED && 
+                p.getStatus() != PlayerStatus.OUT &&
+                p.getStatus() != PlayerStatus.ALL_IN &&
+                p.getStack() > 0) {
                 return index
             }
             index = (index + 1) % players.size
@@ -116,36 +168,62 @@ class Controller(
         return -1
     }
 
-    private fun runBettingRound(hand: Hand, startingPlayerIndex: Int, isPreFlop: Boolean) {
+    private fun runBettingRound(hand: Hand, startingPlayerIndex: Int, isPreFlop: Boolean): Boolean {
         val players = hand.getPlayers()
         hand.setCurrentPlayerIndex(startingPlayerIndex)
 
-        view.printMessage("\n--- Betting round (starts with " + players[startingPlayerIndex].name + ") ---")
+        // Проверка: если только один игрок имеет фишки, раунд завершается
+        val playersWithChips = players.filter { 
+            it.getStatus() != PlayerStatus.FOLDED && 
+            it.getStatus() != PlayerStatus.OUT &&
+            it.getStack() > 0
+        }
+        if (playersWithChips.size <= 1) {
+            view.printOnlyOnePlayerLeft()
+            return true
+        }
 
-        // На префлопе BB уже поставил big blind, поэтому он считается агрессором
+        view.printBettingRoundStart(players[startingPlayerIndex])
+
+        // На префлопе BB уже поставил big blind
         val bbIndex = (hand.getDealerIndex() + 2) % players.size
-        var lastAggressorIndex = if (isPreFlop) bbIndex else -1
-        var lastRaiseAmount = bigBlind // размер последнего рейза (для минимального рейза)
-        val playersWhoActedSinceLastRaise = mutableSetOf<Int>()
+        var lastRaiseAmount = bigBlind
+        val playersWhoActed = mutableSetOf<Int>()
 
         var roundComplete = false
+        var firstPass = true
 
         while (!roundComplete) {
             val currentIndex = hand.getCurrentPlayerIndex()
             val currentPlayer = players[currentIndex]
 
-            if (currentPlayer.getStatus() == PlayerStatus.FOLDED || currentPlayer.getStatus() == PlayerStatus.OUT) {
+            // Пропускаем фолднувших, OUT и игроков с 0 фишек (если не all-in)
+            if (currentPlayer.getStatus() == PlayerStatus.FOLDED || 
+                currentPlayer.getStatus() == PlayerStatus.OUT ||
+                (currentPlayer.getStack() == 0 && currentPlayer.getStatus() != PlayerStatus.ALL_IN)) {
                 hand.setCurrentPlayerIndex((currentIndex + 1) % players.size)
                 if (findFirstActive(hand, hand.getCurrentPlayerIndex()) == -1) {
-                    roundComplete = true
                     break
                 }
                 continue
             }
 
-            view.printMessage("\n" + currentPlayer.name + "'s turn")
+            // Проверка: сколько игроков осталось в игре (не фолднули, не OUT и есть фишки ИЛИ all-in)
+            val playersInHand = players.filter { 
+                it.getStatus() != PlayerStatus.FOLDED && 
+                it.getStatus() != PlayerStatus.OUT &&
+                (it.getStack() > 0 || it.getStatus() == PlayerStatus.ALL_IN)
+            }
+            
+            // Если остался один игрок в игре - все остальные фолднули или остались без фишек
+            if (playersInHand.size <= 1) {
+                view.printAllPlayersFolded()
+                hand.endHandEarly(playersInHand.firstOrNull())
+                return true
+            }
+
             val isDealer = hand.getDealerIndex() == currentIndex
-            view.printPlayerHand(currentPlayer, isDealer)
+            view.printPlayerTurn(currentPlayer, isDealer)
             view.printAvailableActions(hand, currentPlayer)
 
             val playerContribution = hand.getPot().getContributions()[currentPlayer] ?: 0
@@ -153,7 +231,7 @@ class Controller(
             val toCall = currentBet - playerContribution
 
             if (toCall > 0) {
-                view.printMessage("To call: $toCall")
+                view.printToCall(toCall)
             }
 
             val action = view.readAction(hand, currentPlayer)
@@ -161,10 +239,9 @@ class Controller(
 
             when (action) {
                 Action.BET, Action.RAISE -> {
-                    // Минимальный рейз: toCall + max(lastRaiseAmount, bigBlind)
                     val minRaise = maxOf(lastRaiseAmount, bigBlind)
                     val minBetAmount = toCall + minRaise
-                    amount = view.readBetAmount(minBetAmount)
+                    amount = view.readBetAmount("Enter bet amount", minBetAmount)
                     if (amount < minBetAmount) amount = minBetAmount
                 }
                 Action.ALL_IN -> {
@@ -178,144 +255,129 @@ class Controller(
             val success = actionProcessor.execute(hand, currentPlayer, actualAction, amount)
 
             if (!success) {
-                view.printError("Invalid action, try again")
+                view.printInvalidAction()
                 continue
             }
 
-            // Обновляем текущую ставку
-            updateCurrentBet(hand)
+            // Обновляем currentBet
+            var maxBet = 0
+            for (p in players) {
+                val contrib = hand.getPot().getContributions()[p] ?: 0
+                if (contrib > maxBet) maxBet = contrib
+            }
+            hand.setCurrentBet(maxBet)
+            
             val newCurrentBet = hand.getCurrentBet()
             val newContribution = hand.getPot().getContributions()[currentPlayer] ?: 0
 
-            // Проверяем, был ли это рейз (игрок увеличил ставку выше текущей БЫВШЕЙ ставки)
+            // Если был рейз
             if (newContribution > currentBet) {
-                // Новый рейз
-                val raiseAmount = newContribution - currentBet
-                lastAggressorIndex = currentIndex
-                lastRaiseAmount = raiseAmount
-                playersWhoActedSinceLastRaise.clear()
+                lastRaiseAmount = newContribution - currentBet
+                playersWhoActed.clear()
             }
 
-            playersWhoActedSinceLastRaise.add(currentIndex)
+            playersWhoActed.add(currentIndex)
+            if (newContribution == newCurrentBet || currentPlayer.getStatus() == PlayerStatus.ALL_IN) {
+                // Игрок уравнял или all-in
+            }
 
-            // Проверяем завершение раунда
-            roundComplete = checkRoundComplete(
-                hand,
-                startingPlayerIndex,
-                lastAggressorIndex,
-                playersWhoActedSinceLastRaise,
-                isPreFlop,
-            )
+            // Проверка завершения раунда
+            val activePlayers = players.filter { 
+                it.getStatus() != PlayerStatus.FOLDED && it.getStatus() != PlayerStatus.OUT 
+            }
+            val allMatched = activePlayers.all { 
+                it.getStatus() == PlayerStatus.ALL_IN || 
+                (hand.getPot().getContributions()[it] ?: 0) == newCurrentBet 
+            }
+            
+            // Раунд завершён если:
+            // 1. Все активные игроки уравняли ставку (или all-in)
+            // 2. Все активные игроки сделали хотя бы один ход (кроме первого круга на префлопе где BB уже поставил)
+            val everyoneActed = if (isPreFlop && firstPass) {
+                // На префлопе первый круг: все кроме BB должны сыграть, затем BB
+                val allButLastActed = activePlayers.all { p ->
+                    val pIdx = players.indexOf(p)
+                    if (pIdx == bbIndex) true else playersWhoActed.contains(pIdx)
+                }
+                allButLastActed && playersWhoActed.contains(bbIndex)
+            } else {
+                activePlayers.all { playersWhoActed.contains(players.indexOf(it)) }
+            }
 
-            if (roundComplete) break
-
-            // Переходим к следующему игроку
-            hand.setCurrentPlayerIndex((currentIndex + 1) % players.size)
-
-            if (findFirstActive(hand, hand.getCurrentPlayerIndex()) == -1) {
+            if (allMatched && everyoneActed && !firstPass) {
                 roundComplete = true
-                break
+            }
+
+            firstPass = false
+
+            if (!roundComplete) {
+                hand.setCurrentPlayerIndex((currentIndex + 1) % players.size)
+                if (findFirstActive(hand, hand.getCurrentPlayerIndex()) == -1) {
+                    break
+                }
             }
         }
 
-        view.printMessage("\n--- Betting round complete ---")
-    }
-
-    private fun checkRoundComplete(
-        hand: Hand,
-        startingPlayerIndex: Int,
-        lastAggressorIndex: Int,
-        playersWhoActedSinceLastRaise: Set<Int>,
-        isPreFlop: Boolean,
-    ): Boolean {
-        val players = hand.getPlayers()
-        val currentBet = hand.getCurrentBet()
-        val currentIndex = hand.getCurrentPlayerIndex()
-
-        // Считаем активных игроков (не folded, не out, не all-in)
-        val activeIndexes = mutableListOf<Int>()
-        var unmatchedCount = 0
-
-        for ((i, player) in players.withIndex()) {
-            if (player.getStatus() == PlayerStatus.FOLDED || player.getStatus() == PlayerStatus.OUT) continue
-            if (player.getStatus() == PlayerStatus.ALL_IN) continue
-
-            activeIndexes.add(i)
-            val contrib = hand.getPot().getContributions()[player] ?: 0
-            if (contrib < currentBet) unmatchedCount++
-        }
-
-        // Если есть игроки, не уравнявшие ставку — раунд не завершён
-        if (unmatchedCount > 0) return false
-
-        // Все уравняли. Проверяем, все ли активные сыграли
-        if (activeIndexes.isEmpty()) return true
-        if (!activeIndexes.all { playersWhoActedSinceLastRaise.contains(it) }) return false
-
-        // Определяем, какой игрок должен сделать последний ход в раунде
-        val endPlayerIndex = if (isPreFlop) {
-            // На префлопе раунд завершается после хода BB
-            (hand.getDealerIndex() + 2) % players.size
-        } else {
-            // На постфлопе: если никто не повышал — начинали со startingPlayerIndex,
-            // значит раунд завершается после хода startingPlayerIndex
-            // Если был рейз — завершается после хода lastAggressorIndex
-            if (lastAggressorIndex == -1) startingPlayerIndex else lastAggressorIndex
-        }
-
-        // Раунд завершается, когда ход перешёл к игроку ПОСЛЕ endPlayerIndex
-        val nextPlayerAfterEnd = (endPlayerIndex + 1) % players.size
-        return currentIndex == nextPlayerAfterEnd
-    }
-
-    private fun updateCurrentBet(hand: Hand) {
-        val players = hand.getPlayers()
-        var maxBet = 0
-        for (player in players) {
-            val contribution = hand.getPot().getContributions()[player] ?: 0
-            if (contribution > maxBet) {
-                maxBet = contribution
-            }
-        }
-        hand.setCurrentBet(maxBet)
+        view.printBettingRoundComplete()
+        return false
     }
 
     private fun handleShowdown(hand: Hand) {
-        view.printMessage("\n=== SHOWDOWN ===")
         val players = hand.getPlayers()
         val community = hand.getCommunity()
-        val evaluator = HandEvaluator()
-
-        view.printMessage("\nCommunity cards: " + community.joinToString(" "))
+        
+        // Если рука завершена досрочно (все фолднули или all-in), просто показываем победителя
+        if (hand.isEndedEarly()) {
+            val winners = players.filter { it.getStatus() != PlayerStatus.FOLDED }
+            if (winners.isNotEmpty()) {
+                view.printWinners(winners)
+            }
+            view.printAllPlayersStatus(players)
+            return
+        }
+        
+        // Если нет community cards (все фолдят на префлопе), просто показываем победителя
+        if (community.isEmpty()) {
+            val winners = players.filter { it.getStatus() != PlayerStatus.FOLDED }
+            if (winners.isNotEmpty()) {
+                view.printWinners(winners)
+            }
+            view.printAllPlayersStatus(players)
+            return
+        }
+        
+        view.printShowdownStart()
+        view.printCommunityCards(community)
 
         for (player in players) {
             if (player.getStatus() != PlayerStatus.FOLDED) {
-                val rank = evaluator.bestHand(player, community)
+                val rank = HandEvaluator().bestHand(player, community)
                 view.printHandRank(player, rank)
             }
         }
 
         val winners = hand.showdown()
-        val totalWin = hand.getPot().getTotal()
-        view.printWinner(winners, totalWin / winners.size)
+        view.printWinners(winners)
 
         view.printAllPlayersStatus(players)
     }
 
+    fun getGame(): Game? = game
+    fun setGame(g: Game) { game = g }
+    
     fun playerAction(player: Player, action: Action, amount: Int) {
-        val hand = game?.getCurrentHand()
-        if (hand == null) {
-            view.printError("No hand in progress")
-            return
+        val hand = game?.getCurrentHand() ?: return
+        if (actionProcessor.validate(player, action, amount, hand)) {
+            actionProcessor.execute(hand, player, action, amount)
+        } else {
+            logger.error("Invalid action: $action for player ${player.name}")
         }
-
-        actionProcessor.execute(hand, player, action, amount)
     }
-
+    
     fun saveGame() {
         game?.let { g ->
             storage.saveGame(g)
-            view.printMessage("Game saved!")
+            view.printGameSaved()
         }
     }
 
@@ -323,12 +385,10 @@ class Controller(
         val loaded = storage.loadGame(id)
         if (loaded != null) {
             game = loaded
-            view.printMessage("Game loaded!")
+            view.printGameLoaded()
             view.printGameInfo(game!!)
         } else {
             view.printError("Game not found")
         }
     }
-
-    fun getGame(): Game? = game
 }

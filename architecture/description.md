@@ -1,43 +1,95 @@
 # Архитектура Poker Game - Описание
 
-## Основные сущности и их взаимосвязи
+## Обзор системы
 
-### Controller → Game → Hand → Player
+Это консольная реализация Texas Hold'em Poker на Kotlin с использованием Gradle. Архитектура следует паттерну MVC с разделением на слои.
 
-Цепочка управления:
-- **Controller** - точка входа. Координирует игру, принимает действия от игроков, взаимодействует с Storage и Logger
-- **Game** - представляет покерный стол. Содержит список игроков и текущую раздачу (Hand). Отвечает за создание новых раздач
-- **Hand** - одна раздача (раунд). Содержит колоду, общие карты и переход между фазами (Префлоп → Флоп → Терн → Ривер → Шоудан)
-- **Player** - участник игры. Хранит свои карты, стек, статус
+## Поток данных
 
-**Game не дублирует игроков в Hand** - Hand обращается к игрокам через Game, который её создал. 
+1. **Запуск** (`Main.kt`): Создаются зависимости (Logger, Storage, View, Controller), запускается `controller.startGame()`
+2. **Настройка игры**: Ввод количества игроков, имён, стартовых стеков, размеров блайндов
+3. **Раздача**: `Controller.startHand()` запускает полный цикл игры:
+   - Раздача карт (префлоп)
+   - Блайнды (SB и BB)
+   - Раунды ставок: префлоп → флоп → терн → ривер
+   - Шоудан: оценка комбинаций, определение победителей, распределение банка
+4. **Цикл**: После завершения раздачи спрашивается новая раздача или выход
+5. **Сохранение/Загрузка**: Игра может быть сохранена в `.dat` файл и загружена по UUID
 
----
+## Ключевые особенности
 
-### ActionProcessor и HandEvaluator
-
-Это два разных сервиса с разной ответственностью:
-
-- **ActionProcessor** - обрабатывает действия игроков (fold, check, call, bet, raise, all-in). Валидирует, что действие допустимо в текущем состоянии, и выполняет его. Работает с **Hand** и **Pot** - меняет состояние раздачи
-
-- **HandEvaluator** - оценивает силу руки. Сравнивает комбинации карт, определяет победителя. Использует **Player** и **Hand.community** для вычисления HandRank. Работает независимо от состояния игры
-
-**Controller** использует оба сервиса: ActionProcessor при обработке хода игрока, HandEvaluator при шоудане.
-
----
-
-### Поток данных
-
-1. Игрок делает ход через Controller.playerAction(player, action, amount)
-2. Controller → ActionProcessor.validate() - проверяет допустимость
-3. Controller → ActionProcessor.execute() → Hand + Pot - применяет изменение
-4. При переходе фазы → Hand.dealCommunity()
-5. При Showdown → Hand.showdown() → HandEvaluator для каждого игрока
-6. Pot.distributeWinners() - распределяет банк
+- **Side pots**: Поддержка боковых банков для all-in ситуаций
+- **Тейкбрейк**: Корректное определение победителя при равных комбинациях
+- **Многосторонний банк**: Распределение между несколькими победителями
+- **Java serialization**: Сохранение состояния игры в бинарный формат
 
 ---
 
-### Изменения архитектуры:
-1. **Category** теперь называется **Combination** и представляет собой enum, имеющий value от 1 до 10, где 1 - старшая карта, 10 - Флеш Рояль
-2. Добавлены некоторые поля в класс **Hand**
-3. В **Hand** добавлен метод addCommunity для тестирования
+## Изменения в архитектуре
+
+### Logger
+- Теперь **интерфейс** с реализацией `ConsoleLogger`
+- Методы: `info(msg)`, `error(msg)`
+
+### Storage
+- **Интерфейс** с реализацией `FileStorage`
+- Использует **Java serialization** (ObjectOutputStream), не JSON
+- Сохранение в `.dat` файлы по UUID
+
+### Pot
+- Добавлен внутренний **data class SidePot** с полями `eligiblePlayers` и `amount`
+- Методы: `buildSidePots(players)`, `distributeWinners(winners)`, `getSidePots()`, `reset()`
+- Поддержка боковых банков для all-in ситуаций
+
+### Hand
+- Поля: `endedEarly: Boolean`, `dealerIndex: Int`, `currentPlayerIndex: Int`
+- Методы: `endHandEarly(winner)`, `isEndedEarly()`, `addCommunityCard(card)`, `getDealerIndex()`, `getCurrentPlayerIndex()`, `setCurrentPlayerIndex(index)`
+- `phase: GamePhase` - публичное поле с приватным сеттером
+- Методы `dealFlop()`, `dealTurn()`, `dealRiver()` сжигают карту перед раздачей
+
+### Game
+- Добавлено поле `currentBet: Int`
+- Методы: `getCurrentHandOrThrow()`, `isHandInProgress()`, `getCurrentBet()`, `setCurrentBet(bet)`
+
+### Controller
+- Поля: `bigBlind: Int`, `smallBlind: Int`
+- Публичные методы: `saveGame()`, `loadGame(id)`, `playerAction(player, action, amount)` (для GUI)
+- Внутренние методы: `isGameEnded()`, `placeBlind()`, `findFirstActive()`, `runBettingRound()`, `handleShowdown()`
+
+### Player
+- Все поля private с геттерами/сеттерами
+- `name: String` - публичное свойство
+- Метод `bet(amount)` возвращает фактическую сумму ставки
+
+### HandRank
+- Поля `category` и `cards` - публичные свойства (val)
+- Реализовано `Comparable<HandRank>` с корректным тейкбрейком
+
+### HandEvaluator
+- Метод `bestHand()` перебирает все C(7,5)=21 комбинацию из 7 карт
+- Метод `detectCombination()` определяет тип комбинации по 5 картам
+- Поддержка特殊ного стрита A-2-3-4-5 (старшая карта 5)
+
+---
+
+## Файловая структура
+
+```
+src/main/kotlin/
+├── Enums.kt          // Suit, Rank, PlayerStatus, Action, GamePhase, Combination
+├── Card.kt           // Карта (suit, rank)
+├── Deck.kt           // Колода
+├── Player.kt         // Игрок
+├── Pot.kt            // Банк + SidePot
+├── Hand.kt           // Раздача
+├── Game.kt           // Игра (стол)
+├── HandRank.kt       // Оценка руки
+├── HandEvaluator.kt  // Оценка комбинаций
+├── ActionProcessor.kt// Обработка действий
+├── View.kt           // Интерфейс View
+├── ViewCli.kt        // Консольная реализация
+├── Controller.kt     // MVC контроллер
+├── Logger.kt         // Интерфейс логирования
+├── Storage.kt        // Интерфейс хранения
+├── Main.kt           // Точка входа
+```

@@ -1,8 +1,8 @@
 fun main() {
-    val logger = Logger()
-    val storage = FileStorage()
-    val view = View(logger)
-    val controller = Controller(storage, logger, view)
+    val logger: Logger = ConsoleLogger()
+    val storage: Storage = FileStorage(basePath = "./saves", logger = logger)
+    val view: View = ViewCli(logger)
+    val controller: Controller = Controller(storage, logger, view)
 
     controller.startGame()
 

@@ -8,7 +8,10 @@ interface Storage {
     fun loadGame(id: UUID): Game?
 }
 
-class FileStorage(private val basePath: String = "./saves") : Storage {
+class FileStorage(
+    private val basePath: String = "./saves",
+    private val logger: Logger
+) : Storage {
     init {
         File(basePath).mkdirs()
     }
@@ -18,13 +21,13 @@ class FileStorage(private val basePath: String = "./saves") : Storage {
         ObjectOutputStream(file.outputStream()).use { out ->
             out.writeObject(g)
         }
-        println("Game saved to ${file.absolutePath}")
+        logger.info("Game saved to ${file.absolutePath}")
     }
 
     override fun loadGame(id: UUID): Game? {
         val file = File("$basePath/$id.dat")
         if (!file.exists()) {
-            println("Game file not found: ${file.absolutePath}")
+            logger.error("Game file not found: ${file.absolutePath}")
             return null
         }
         return ObjectInputStream(file.inputStream()).use { inp ->

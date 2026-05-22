@@ -1,5 +1,4 @@
-class ActionProcessor {
-    private val logger = Logger()
+class ActionProcessor(private val logger: Logger = ConsoleLogger()) {
 
     fun validate(player: Player, action: Action, amount: Int, hand: Hand): Boolean {
         when (action) {
@@ -51,8 +50,9 @@ class ActionProcessor {
             Action.BET, Action.RAISE -> {
                 val actualBet = player.bet(amount)
                 hand.getPot().add(player, actualBet)
-                if (actualBet > hand.getCurrentBet()) {
-                    hand.setCurrentBet(actualBet)
+                val newContribution = hand.getPot().getContributions()[player] ?: 0
+                if (newContribution > hand.getCurrentBet()) {
+                    hand.setCurrentBet(newContribution)
                 }
                 logger.info("${player.name} ${if (action == Action.BET) "bets" else "raises"} $actualBet")
             }
@@ -60,8 +60,9 @@ class ActionProcessor {
                 val allInAmount = player.getStack()
                 val actualBet = player.bet(allInAmount)
                 hand.getPot().add(player, actualBet)
-                if (actualBet > hand.getCurrentBet()) {
-                    hand.setCurrentBet(actualBet)
+                val newContribution = hand.getPot().getContributions()[player] ?: 0
+                if (newContribution > hand.getCurrentBet()) {
+                    hand.setCurrentBet(newContribution)
                 }
                 player.setStatus(PlayerStatus.ALL_IN)
                 logger.info("${player.name} goes all-in with $actualBet")

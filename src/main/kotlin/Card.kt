@@ -1,10 +1,7 @@
 data class Card(
-    private val suit: Suit,
-    private val rank: Rank,
+    val suit: Suit,
+    val rank: Rank,
 ) {
-    fun getSuit(): Suit = suit
-    fun getRank(): Rank = rank
-
     override fun toString(): String {
         val rankChar = when (rank) {
             Rank.TEN -> "T"
