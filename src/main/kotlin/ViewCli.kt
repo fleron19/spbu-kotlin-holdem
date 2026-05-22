@@ -84,7 +84,7 @@ class ViewCli(private val logger: Logger) : View {
             println("You have folded this hand.")
             return
         }
-        
+
         if (player.getStatus() == PlayerStatus.ALL_IN) {
             println("You are all-in! Waiting for other players...")
             return
@@ -150,7 +150,7 @@ class ViewCli(private val logger: Logger) : View {
         print("$prompt (min 1, default $default): ")
         val input = scanner.nextLine().trim()
         if (input.isNullOrEmpty()) return default
-        
+
         val value = input.toIntOrNull()
         if (value == null || value < 1) {
             println("Please enter a positive integer!")
@@ -163,7 +163,7 @@ class ViewCli(private val logger: Logger) : View {
         print("Enter $blindType amount (default $default): ")
         val input = scanner.nextLine().trim()
         if (input.isNullOrEmpty()) return default
-        
+
         val value = input.toIntOrNull()
         if (value == null || value < 1) {
             println("Please enter a positive integer!")

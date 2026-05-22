@@ -10,7 +10,7 @@ interface Storage {
 
 class FileStorage(
     private val basePath: String = "./saves",
-    private val logger: Logger
+    private val logger: Logger,
 ) : Storage {
     init {
         File(basePath).mkdirs()

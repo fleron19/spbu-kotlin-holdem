@@ -6,17 +6,17 @@ interface View {
     fun printPlayerSetupHeader(playerNumber: Int)
     fun printError(msg: String)
     fun printMessage(msg: String)
-    
+
     // Player management
     fun printPlayerOrder(players: List<Player>, dealerIndex: Int, sbIndex: Int, bbIndex: Int)
     fun printAllPlayersStatus(players: List<Player>)
-    
+
     // Hand info
     fun printHandInfo(hand: Hand)
     fun dealFlop()
     fun dealTurn()
     fun dealRiver()
-    
+
     // Betting round
     fun printBettingRoundStart(startingPlayer: Player)
     fun printBettingRoundComplete()
@@ -26,7 +26,7 @@ interface View {
     fun printInvalidAction()
     fun printOnlyOnePlayerLeft()
     fun printAllPlayersFolded()
-    
+
     // Actions input (CLI only, GUI handles this differently)
     fun readAction(hand: Hand, player: Player): Action
     fun readBetAmount(prompt: String, minRaise: Int): Int
@@ -35,19 +35,19 @@ interface View {
     fun readPlayerName(): String
     fun askAddPlayer(): Boolean
     fun askNewHand(): Boolean
-    
+
     // Showdown
     fun printShowdownStart()
     fun printCommunityCards(cards: List<Card>)
     fun printHandRank(player: Player, rank: HandRank)
     fun printWinners(winners: List<Player>)
-    
+
     // Game state
     fun printGameSaved()
     fun printGameLoaded()
     fun printGameEnded()
     fun printGameAlreadyEnded()
-    
+
     // Helper (optional, for CLI)
     fun printPlayerStatus(player: Player)
 }

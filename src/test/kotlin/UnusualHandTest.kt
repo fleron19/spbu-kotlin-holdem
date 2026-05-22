@@ -12,17 +12,17 @@ class UnusualHandTest {
         val player2 = Player(UUID.randomUUID(), "Felder1", 1000)
         val player3 = Player(UUID.randomUUID(), "Felder2", 1000)
         val players = mutableListOf(player1, player2, player3)
-        
+
         pot.add(player1, 500)
         pot.add(player2, 100)
         pot.add(player3, 100)
-        
+
         player2.setStatus(PlayerStatus.FOLDED)
         player3.setStatus(PlayerStatus.FOLDED)
-        
+
         // Только player1 не фолднул
         pot.buildSidePots(players)
-        
+
         // Создается 2 side pot'а:
         // - Main: 100 * 3 = 300 (eligible: player1)
         // - Side: 400 * 1 = 400 (eligible: player1)
@@ -31,7 +31,7 @@ class UnusualHandTest {
         assertEquals(400, pot.getSidePots()[1].amount)
         assertEquals(1, pot.getSidePots()[0].eligiblePlayers.size) // Только player1
         assertEquals(1, pot.getSidePots()[1].eligiblePlayers.size) // Только player1
-        
+
         val winners = listOf(player1)
         val distribution = pot.distributeWinners(winners)
         assertEquals(700, distribution[player1]) // 300 + 400
@@ -45,24 +45,24 @@ class UnusualHandTest {
         val player2 = Player(UUID.randomUUID(), "SB", 1000)
         val player3 = Player(UUID.randomUUID(), "BB", 1000)
         val players = listOf(player1, player2, player3)
-        
+
         // Блайнды
-        pot.add(player2, 50)  // SB
+        pot.add(player2, 50) // SB
         pot.add(player3, 100) // BB
-        
+
         // Префлоп: все уравняли
         pot.add(player1, 100) // Dealer calls
-        pot.add(player2, 50)  // SB completes to 100
+        pot.add(player2, 50) // SB completes to 100
         // BB уже поставил 100, чек
-        
+
         assertEquals(300, pot.getTotal())
-        
+
         // Флоп, все чек
         // Никаких дополнительных ставок
         assertEquals(300, pot.getTotal())
-        
+
         pot.buildSidePots(players)
-        
+
         assertEquals(1, pot.getSidePots().size)
         assertEquals(300, pot.getSidePots()[0].amount)
     }
@@ -75,28 +75,28 @@ class UnusualHandTest {
         val player2 = Player(UUID.randomUUID(), "SB", 1000)
         val player3 = Player(UUID.randomUUID(), "BB", 1000)
         val players = listOf(player1, player2, player3)
-        
+
         // Блайнды
-        pot.add(player2, 50)  // SB
+        pot.add(player2, 50) // SB
         pot.add(player3, 100) // BB
-        
+
         // Префлоп: все уравняли
         pot.add(player1, 100) // Dealer calls
-        pot.add(player2, 50)  // SB completes to 100
-        
+        pot.add(player2, 50) // SB completes to 100
+
         // Флоп - все чек
         // Терн - все чек
         // Ривер - все чек
-        
+
         pot.buildSidePots(players)
-        
+
         assertEquals(1, pot.getSidePots().size)
         assertEquals(300, pot.getSidePots()[0].amount)
-        
+
         // Все игроки вельи к победителям (допустим, все равные карты)
         val winners = listOf(player1, player2, player3)
         val distribution = pot.distributeWinners(winners)
-        
+
         // Банк 300 делится на троих
         assertEquals(100, distribution[player1])
         assertEquals(100, distribution[player2])
@@ -109,22 +109,22 @@ class UnusualHandTest {
         val player1 = Player(UUID.randomUUID(), "Player1", 1000)
         val player2 = Player(UUID.randomUUID(), "Player2", 1000)
         val players = listOf(player1, player2)
-        
+
         // Префлоп ставки
         pot.add(player1, 200)
         pot.add(player2, 200)
-        
+
         assertEquals(400, pot.getTotal())
-        
+
         // Флоп, все чек - банк не меняется
         assertEquals(400, pot.getTotal())
-        
+
         // Терн, все чек - банк не меняется
         assertEquals(400, pot.getTotal())
-        
+
         // Ривер, все чек
         assertEquals(400, pot.getTotal())
-        
+
         pot.buildSidePots(players)
         assertEquals(1, pot.getSidePots().size)
         assertEquals(400, pot.getSidePots()[0].amount)
@@ -136,22 +136,22 @@ class UnusualHandTest {
         val player1 = Player(UUID.randomUUID(), "Winner", 1000)
         val player2 = Player(UUID.randomUUID(), "Felder", 1000)
         val players = listOf(player1, player2)
-        
+
         pot.add(player1, 100)
         pot.add(player2, 100)
-        
+
         // Игрок 2 фолдит перед показом - его ставка остается в банке
         player2.setStatus(PlayerStatus.FOLDED)
-        
+
         // buildSidePots учитывает ВСЕ ставки, но eligible только активные
         pot.buildSidePots(players)
-        
+
         assertEquals(1, pot.getSidePots().size)
         // Весь банк 200 (включая ставку фолднувшего)
-        assertEquals(200, pot.getSidePots()[0].amount) 
+        assertEquals(200, pot.getSidePots()[0].amount)
         // Только player1 eligible (так как player2 фолднул)
         assertEquals(1, pot.getSidePots()[0].eligiblePlayers.size)
-        
+
         val winners = listOf(player1)
         val distribution = pot.distributeWinners(winners)
         // Победитель получает весь банк
@@ -165,15 +165,15 @@ class UnusualHandTest {
         val player1 = Player(UUID.randomUUID(), "Player1", 1000)
         val player2 = Player(UUID.randomUUID(), "Player2", 1000)
         val players = listOf(player1, player2)
-        
+
         pot.add(player1, 500)
         pot.add(player2, 500)
-        
+
         pot.buildSidePots(players)
-        
+
         val winners = listOf(player1, player2)
         val distribution = pot.distributeWinners(winners)
-        
+
         assertEquals(500, distribution[player1])
         assertEquals(500, distribution[player2])
     }
@@ -186,19 +186,19 @@ class UnusualHandTest {
         val player1 = Player(UUID.randomUUID(), "AllIn", 200)
         val player2 = Player(UUID.randomUUID(), "Checker", 1000)
         val players = listOf(player1, player2)
-        
+
         player1.setStatus(PlayerStatus.ALL_IN)
-        
+
         pot.add(player1, 200)
         pot.add(player2, 200) // только уравнял
-        
+
         // Флоп, терн, ривер - чек (нет активных ставок)
-        
+
         pot.buildSidePots(players)
-        
+
         assertEquals(1, pot.getSidePots().size)
         assertEquals(400, pot.getSidePots()[0].amount)
-        
+
         val winners = listOf(player2)
         val distribution = pot.distributeWinners(winners)
         assertEquals(400, distribution[player2])
@@ -214,27 +214,27 @@ class UnusualHandTest {
         val player2 = Player(UUID.randomUUID(), "Short2", 150)
         val player3 = Player(UUID.randomUUID(), "Deep", 1000)
         val players = listOf(player1, player2, player3)
-        
+
         player1.setStatus(PlayerStatus.ALL_IN)
         player2.setStatus(PlayerStatus.ALL_IN)
-        
+
         pot.add(player1, 50)
         pot.add(player2, 150)
         pot.add(player3, 500)
-        
+
         pot.buildSidePots(players)
-        
+
         assertEquals(3, pot.getSidePots().size)
-        
+
         // Main: 50 * 3 = 150
         assertEquals(150, pot.getSidePots()[0].amount)
-        
+
         // Side1: 100 * 2 = 200
         assertEquals(200, pot.getSidePots()[1].amount)
-        
+
         // Side2: 350 * 1 = 350
         assertEquals(350, pot.getSidePots()[2].amount)
-        
+
         // Player3 выигрывает всё
         val winners = listOf(player3)
         val distribution = pot.distributeWinners(winners)
@@ -247,7 +247,7 @@ class UnusualHandTest {
         val player1 = Player(UUID.randomUUID(), "Player1", 1000)
         val player2 = Player(UUID.randomUUID(), "Player2", 1000)
         val players = listOf(player1, player2)
-        
+
         // Player1 чек
         // Player2 бет 100
         pot.add(player2, 100)
@@ -255,9 +255,9 @@ class UnusualHandTest {
         pot.add(player1, 200)
         // Player2 колл (добавляет 100)
         pot.add(player2, 100)
-        
+
         assertEquals(400, pot.getTotal())
-        
+
         pot.buildSidePots(players)
         assertEquals(1, pot.getSidePots().size)
         assertEquals(400, pot.getSidePots()[0].amount)
@@ -266,9 +266,9 @@ class UnusualHandTest {
     @Test
     fun `player with zero stack cannot bet`() {
         val player = Player(UUID.randomUUID(), "Broke", 0)
-        
+
         val betAmount = player.bet(100)
-        
+
         assertEquals(0, betAmount)
         assertEquals(0, player.getStack())
     }
@@ -277,7 +277,7 @@ class UnusualHandTest {
     fun `folded player cannot act`() {
         val player = Player(UUID.randomUUID(), "Felder", 1000)
         player.setStatus(PlayerStatus.FOLDED)
-        
+
         assertTrue(player.getStatus() == PlayerStatus.FOLDED)
         assertEquals(1000, player.getStack()) // Стак не меняется при фолде
     }
@@ -285,10 +285,10 @@ class UnusualHandTest {
     @Test
     fun `all-in player stays in hand but cannot act`() {
         val player = Player(UUID.randomUUID(), "AllIn", 100)
-        
+
         val actualBet = player.bet(100)
         player.setStatus(PlayerStatus.ALL_IN)
-        
+
         assertEquals(100, actualBet)
         assertEquals(0, player.getStack())
         assertTrue(player.getStatus() == PlayerStatus.ALL_IN)

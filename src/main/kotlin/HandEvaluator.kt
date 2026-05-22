@@ -1,6 +1,6 @@
 class HandEvaluator {
     fun compare(hand1: HandRank, hand2: HandRank): Int = hand1.compareTo(hand2)
-    
+
     fun bestHand(player: Player, community: List<Card>): HandRank {
         val allCards = player.getHole() + community
         require(allCards.size == 7) { "Expected exactly 7 cards (2 hole + 5 community)" }
@@ -39,11 +39,13 @@ class HandEvaluator {
         val rankCounts = cards.groupingBy { it.rank.value }.eachCount()
         val isFlush = cards.all { it.suit == cards[0].suit }
         val rankValues = cards.map { it.rank.value }.sorted()
-        
+
         val isStraight = if (rankValues.toSet().size == 5) {
-            rankValues.last() - rankValues.first() == 4 || 
-            (rankValues == listOf(2, 3, 4, 5, 14)) // A-5 straight
-        } else false
+            rankValues.last() - rankValues.first() == 4 ||
+                (rankValues == listOf(2, 3, 4, 5, 14)) // A-5 straight
+        } else {
+            false
+        }
 
         return when {
             isFlush && isStraight && rankValues.contains(14) && rankValues.contains(13) -> Combination.ROYAL_FLUSH

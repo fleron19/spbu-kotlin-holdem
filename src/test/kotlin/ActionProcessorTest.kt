@@ -146,7 +146,7 @@ class ActionProcessorTest {
         // Player2 идет all-in со 150 (меньше чем currentBet)
         player2.setStack(150)
         processor.execute(hand, player2, Action.ALL_IN, 0)
-        
+
         // currentBet должен быть обновлен до 150 (вклад player2)
         assertEquals(150, hand.getCurrentBet())
         assertEquals(PlayerStatus.ALL_IN, player2.getStatus())

@@ -90,7 +90,7 @@ class Hand(
 
         // Строим side pots перед распределением
         pot.buildSidePots(players)
-        
+
         val winnings = pot.distributeWinners(winners)
         for ((player, amount) in winnings) {
             player.setStack(player.getStack() + amount)
