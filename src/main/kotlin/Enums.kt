@@ -38,6 +38,7 @@ enum class PlayerStatus {
     ACTIVE,
     FOLDED,
     ALL_IN,
+    OUT,
 }
 
 enum class GamePhase {
