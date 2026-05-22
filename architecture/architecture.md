@@ -122,7 +122,7 @@ classDiagram
         - dealerIndex: Int
         - currentPlayerIndex: Int
         - endedEarly: Boolean
-        + phase: GamePhase { private set }
+        + phase: GamePhase
         + getId() UUID
         + getPlayers() List~Player~
         + getCommunity() List~Card~
