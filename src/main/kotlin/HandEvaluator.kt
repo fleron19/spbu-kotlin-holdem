@@ -5,13 +5,25 @@ class HandEvaluator {
 
         var bestRank: HandRank? = null
 
-        for (i in allCards.indices) {
+        // Перебор всех комбинаций по 5 карт из 7 (C(7,5) = 21 комбинация)
+        for (i in 0 until allCards.size) {
             for (j in i + 1 until allCards.size) {
-                val fiveCards = allCards.filterIndexed { index, _ -> index != i && index != j }
-                val rank =
-                    HandRank(detectCombination(fiveCards).value, fiveCards.sortedByDescending { it.getRank().value })
-                if (bestRank == null || rank > bestRank) {
-                    bestRank = rank
+                for (k in j + 1 until allCards.size) {
+                    for (l in k + 1 until allCards.size) {
+                        for (m in l + 1 until allCards.size) {
+                            val fiveCards = listOf(
+                                allCards[i],
+                                allCards[j],
+                                allCards[k],
+                                allCards[l],
+                                allCards[m],
+                            )
+                            val rank = HandRank(detectCombination(fiveCards).value, fiveCards.sortedByDescending { it.getRank().value })
+                            if (bestRank == null || rank > bestRank) {
+                                bestRank = rank
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -24,12 +36,13 @@ class HandEvaluator {
     private fun detectCombination(cards: List<Card>): Combination {
         val rankCounts = cards.groupingBy { it.getRank().value }.eachCount()
         val isFlush = cards.all { it.getSuit() == cards[0].getSuit() }
-        val isStraight = isStraight(cards.map { it.getRank().value }.toSet())
+        val rankValues = cards.map { it.getRank().value }.sorted()
+        val isStraight = isStraight(rankValues)
 
-        val counts = rankCounts.values.toList().sortedDescending()
+        val counts = rankCounts.values.sortedDescending()
 
         return when {
-            isFlush && isStraight && cards.any { it.getRank().value == 14 } && cards.any { it.getRank().value == 13 } ->
+            isFlush && isStraight && rankValues.contains(14) && rankValues.contains(10) ->
                 Combination.ROYAL_FLUSH
 
             isFlush && isStraight ->
@@ -61,23 +74,20 @@ class HandEvaluator {
         }
     }
 
-    private fun isStraight(ranks: Set<Int>): Boolean {
+    private fun isStraight(ranks: List<Int>): Boolean {
         if (ranks.size < 5) return false
-        val sorted = ranks.sorted()
+        val unique = ranks.distinct()
 
-        for (i in 0..sorted.size - 5) {
-            var consecutive = true
-            for (j in i until i + 4) {
-                if (sorted[j + 1] - sorted[j] != 1) {
-                    consecutive = false
-                    break
-                }
-            }
-            if (consecutive) return true
+        if (unique.size < 5) return false
+
+        // Проверка на обычный стрит
+        for (i in 0..unique.size - 5) {
+            if (unique[i + 4] - unique[i] == 4) return true
         }
 
-        if (ranks.contains(14) && ranks.contains(2) && ranks.contains(3) &&
-            ranks.contains(4) && ranks.contains(5)
+        // Проверка на стрит A-2-3-4-5 (A как 14, но может быть как 1)
+        if (unique.contains(14) && unique.contains(2) && unique.contains(3) &&
+            unique.contains(4) && unique.contains(5)
         ) {
             return true
         }
