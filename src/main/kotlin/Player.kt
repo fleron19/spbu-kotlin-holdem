@@ -24,6 +24,10 @@ class Player(
         hole.add(c)
     }
 
+    fun clearHole() {
+        hole.clear()
+    }
+
     fun bet(amount: Int): Int {
         val actualBet = minOf(amount, stack)
         stack -= actualBet
