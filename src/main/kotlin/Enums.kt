@@ -2,7 +2,8 @@ enum class Suit(val code: Int) {
     HEARTS(0),
     DIAMONDS(1),
     CLUBS(2),
-    SPADES(3);
+    SPADES(3),
+    ;
 
     override fun toString(): String = when (this) {
         HEARTS -> "♥"
@@ -25,7 +26,8 @@ enum class Rank(val value: Int) {
     JACK(11),
     QUEEN(12),
     KING(13),
-    ACE(14);
+    ACE(14),
+    ;
 
     override fun toString(): String = when (this) {
         TWO -> "2"

@@ -3,6 +3,6 @@ data class Card(
     val rank: Rank,
 ) {
     override fun toString(): String {
-        return "${rank.toString()}${suit.toString()}"
+        return "$rank$suit"
     }
 }
