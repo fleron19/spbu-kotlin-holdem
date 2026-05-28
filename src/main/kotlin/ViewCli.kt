@@ -11,8 +11,8 @@ class ViewCli(private val logger: Logger) : View {
 
     override fun printGameInfo(game: Game) {
         println("\n--- Game ${game.getId()} ---")
-        println("Players (${game.getPlayers().size}):")
-        for (player in game.getPlayers()) {
+        println("Players (${game.players.size}):")
+        for (player in game.players) {
             println("  - ${player.name}: ${player.getStack()} chips [${player.getStatus()}]")
         }
     }
@@ -271,7 +271,7 @@ class ViewCli(private val logger: Logger) : View {
             Combination.STRAIGHT_FLUSH to "Straight Flush",
             Combination.ROYAL_FLUSH to "Royal Flush",
         )
-        val combination = Combination.values().firstOrNull { it.value == rank.category }
+        val combination = Combination.values().firstOrNull { it.value == rank.category.value }
         val rankName = combination?.let { rankNames[it] } ?: "Unknown"
         println("${player.name}: ${player.getHole().joinToString(" ")} - $rankName")
     }

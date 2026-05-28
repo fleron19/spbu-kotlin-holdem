@@ -14,8 +14,8 @@ class GameTest {
 
         game.addPlayer(player)
 
-        assertEquals(1, game.getPlayers().size)
-        assertTrue(game.getPlayers().contains(player))
+        assertEquals(1, game.players.size)
+        assertTrue(game.players.contains(player))
     }
 
     @Test
@@ -26,7 +26,7 @@ class GameTest {
         game.addPlayer(player)
         game.addPlayer(player)
 
-        assertEquals(1, game.getPlayers().size)
+        assertEquals(1, game.players.size)
     }
 
     @Test

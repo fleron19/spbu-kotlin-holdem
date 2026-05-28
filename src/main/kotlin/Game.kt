@@ -2,13 +2,15 @@ import java.util.UUID
 
 class Game(
     private val id: UUID = UUID.randomUUID(),
-    private val players: MutableList<Player> = mutableListOf(),
+    private val _players: MutableList<Player> = mutableListOf(),
     private var currentHand: Hand? = null,
     private var currentBet: Int = 0,
+    private var dealer: Int = 0,
 ) {
-    fun getId(): UUID = id
 
-    fun getPlayers(): List<Player> = players
+    val players: List<Player> get() = _players
+
+    fun getId(): UUID = id
 
     fun getCurrentHand(): Hand? = currentHand
 
@@ -20,19 +22,21 @@ class Game(
 
     fun addPlayer(p: Player) {
         if (players.none { it.getId() == p.getId() }) {
-            players.add(p)
+            _players.add(p)
         }
     }
 
     fun removePlayer(p: Player) {
-        players.removeIf { it.getId() == p.getId() }
+        _players.removeIf { it.getId() == p.getId() }
     }
 
     fun startHand(): Hand {
-        currentHand = Hand(UUID.randomUUID(), players.toMutableList())
-        currentHand?.dealHole()
+        dealer = (dealer + 1) % players.size
+        val hand = Hand(UUID.randomUUID(), players, dealerIndex = dealer)
+        hand.dealHole()
+        currentHand = hand
         currentBet = 0
-        return currentHand!!
+        return hand
     }
 
     fun getCurrentHandOrThrow(): Hand {

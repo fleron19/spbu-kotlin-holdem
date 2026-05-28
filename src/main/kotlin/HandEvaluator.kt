@@ -20,7 +20,7 @@ class HandEvaluator {
                                 allCards[l],
                                 allCards[m],
                             )
-                            val rank = HandRank(detectCombination(fiveCards).value, fiveCards.sortedByDescending { it.rank.value })
+                            val rank = HandRank(detectCombination(fiveCards), fiveCards.sortedByDescending { it.rank.value })
                             if (bestRank == null || rank > bestRank) {
                                 bestRank = rank
                             }

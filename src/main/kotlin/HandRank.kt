@@ -1,5 +1,5 @@
 class HandRank(
-    val category: Int,
+    val category: Combination,
     val cards: List<Card>,
 ) : Comparable<HandRank> {
     override fun compareTo(other: HandRank): Int {
@@ -20,11 +20,11 @@ class HandRank(
 
     override fun equals(other: Any?): Boolean {
         if (other !is HandRank) return false
-        return category == other.category && compareTo(other) == 0
+        return category.value == other.category.value && compareTo(other) == 0
     }
 
     override fun hashCode(): Int {
-        var result = category
+        var result = category.value
         result = 31 * result + cards.hashCode()
         return result
     }
@@ -33,7 +33,7 @@ class HandRank(
         val ranks = cards.map { it.rank.value }
         val counts = ranks.groupingBy { it }.eachCount()
 
-        return when (category) {
+        return when (category.value) {
             Combination.ROYAL_FLUSH.value, Combination.STRAIGHT_FLUSH.value, Combination.STRAIGHT.value -> {
                 // Для стритов и стрит-флашей - самая высокая карта стрита
                 // A-2-3-4-5 имеет высокую карту 5, остальные - высокую карту

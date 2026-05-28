@@ -27,7 +27,7 @@ interface View {
     fun printOnlyOnePlayerLeft()
     fun printAllPlayersFolded()
 
-    // Actions input (CLI only, GUI handles this differently)
+    // Actions input
     fun readAction(hand: Hand, player: Player): Action
     fun readBetAmount(prompt: String, minRaise: Int): Int
     fun readPositiveInt(prompt: String, default: Int): Int

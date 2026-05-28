@@ -2,16 +2,16 @@ import java.util.UUID
 
 class Hand(
     private val id: UUID,
-    private val players: MutableList<Player>,
+    private val players: List<Player>,
     private val pot: Pot = Pot(),
     private val deck: Deck = Deck(),
+    private var dealerIndex: Int = 0,
 ) {
     var phase: GamePhase = GamePhase.WAITING
         private set
 
     private val community: MutableList<Card> = mutableListOf()
     private var currentBet: Int = 0
-    private var dealerIndex: Int = 0
     private var currentPlayerIndex: Int = 0
     private var endedEarly: Boolean = false
 
@@ -50,7 +50,7 @@ class Hand(
     fun dealFlop() {
         require(phase == GamePhase.PREFLOP) { "Can't deal flop in $phase" }
         deck.draw()
-        repeat(3) { community.add(deck.draw()) }
+        repeat(3) { community.add(deck.draw()) } // В Техасском холдеме флоп - 3 карты
         phase = GamePhase.FLOP
     }
 

@@ -19,9 +19,9 @@ class Controller(
         game = Game()
         var playerCount = 0
 
-        while (true) {
+        do {
             if (playerCount >= 9) {
-                view.printMessage("Maximum 10 players reached!")
+                view.printMessage("Maximum 10 players reached!") // В Техасском холдеме не больше 10 игроков
                 break
             }
 
@@ -32,11 +32,9 @@ class Controller(
             val player = Player(UUID.randomUUID(), name, stack)
             game?.addPlayer(player)
             logger.info("Added player: ${player.name} with ${player.getStack()} chips")
+        } while (view.askAddPlayer())
 
-            if (!view.askAddPlayer()) break
-        }
-
-        while (game?.getPlayers()?.size ?: 0 < 2) {
+        while (game?.players?.size ?: 0 < 2) {
             view.printError("Minimum 2 players required!")
             playerCount++
             view.printPlayerSetupHeader(playerCount)
@@ -47,13 +45,13 @@ class Controller(
             logger.info("Added player: ${player.name} with ${player.getStack()} chips")
         }
 
-        view.printGameInfo(game!!)
+        view.printGameInfo(requireNotNull(game))
         view.printBlindsConfigured(smallBlind, bigBlind)
     }
 
     fun startHand() {
-        logger.info("Controller.startHand() called, game=${game != null}, players=${game?.getPlayers()?.size}")
-        if (game == null || game?.getPlayers()?.isEmpty() == true) {
+        logger.info("Controller.startHand() called, game=${game != null}, players=${game?.players?.size}")
+        if (game?.players?.isEmpty() ?: true) {
             logger.error("Controller.startHand(): Game not initialized")
             view.printError("Game not initialized")
             return
@@ -137,7 +135,7 @@ class Controller(
     }
 
     private fun isGameEnded(): Boolean {
-        val playersWithChips = game?.getPlayers()?.filter { it.getStack() > 0 } ?: emptyList()
+        val playersWithChips = game?.players?.filter { it.getStack() > 0 } ?: emptyList()
         return playersWithChips.size <= 1
     }
 
@@ -389,8 +387,7 @@ class Controller(
         val loaded = storage.loadGame(id)
         if (loaded != null) {
             game = loaded
-            view.printGameLoaded()
-            view.printGameInfo(game!!)
+            view.printGameInfo(loaded)
         } else {
             view.printError("Game not found")
         }

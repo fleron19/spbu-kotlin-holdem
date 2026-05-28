@@ -153,8 +153,8 @@ class IntegrationTest {
         val hand2Rank = evaluator.bestHand(players[1], hand.getCommunity())
 
         assertTrue(hand1Rank > hand2Rank, "Pair should beat high card")
-        assertEquals(Combination.ONE_PAIR.value, hand1Rank.category)
-        assertEquals(Combination.HIGH_CARD.value, hand2Rank.category)
+        assertEquals(Combination.ONE_PAIR, hand1Rank.category)
+        assertEquals(Combination.HIGH_CARD, hand2Rank.category)
     }
 
     @Test
@@ -196,7 +196,7 @@ class IntegrationTest {
         val hand2Rank = evaluator.bestHand(players[1], hand.getCommunity())
 
         assertTrue(hand1Rank > hand2Rank, "Flush should beat high card")
-        assertEquals(Combination.FLUSH.value, hand1Rank.category)
+        assertEquals(Combination.FLUSH, hand1Rank.category)
     }
 
     @Test
@@ -233,8 +233,8 @@ class IntegrationTest {
         val hand2Rank = evaluator.bestHand(players[1], hand.getCommunity())
 
         assertTrue(hand1Rank > hand2Rank, "Full house should beat flush")
-        assertEquals(Combination.FULL_HOUSE.value, hand1Rank.category)
-        assertEquals(Combination.FLUSH.value, hand2Rank.category)
+        assertEquals(Combination.FULL_HOUSE, hand1Rank.category)
+        assertEquals(Combination.FLUSH, hand2Rank.category)
     }
 
     @Test
@@ -256,7 +256,7 @@ class IntegrationTest {
         val evaluator = HandEvaluator()
         val handRank = evaluator.bestHand(player, community)
 
-        assertEquals(Combination.STRAIGHT.value, handRank.category)
+        assertEquals(Combination.STRAIGHT, handRank.category)
     }
 
     @Test
@@ -289,7 +289,7 @@ class IntegrationTest {
         val hand2Rank = evaluator.bestHand(player2, community)
 
         assertTrue(hand1Rank > hand2Rank, "AA+QQ should beat KK+QQ")
-        assertEquals(Combination.TWO_PAIR.value, hand1Rank.category)
-        assertEquals(Combination.TWO_PAIR.value, hand2Rank.category)
+        assertEquals(Combination.TWO_PAIR, hand1Rank.category)
+        assertEquals(Combination.TWO_PAIR, hand2Rank.category)
     }
 }

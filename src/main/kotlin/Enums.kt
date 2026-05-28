@@ -1,26 +1,48 @@
-enum class Suit(val code: Int, val symbol: String) {
-    HEARTS(0, "♥"),
-    DIAMONDS(1, "♦"),
-    CLUBS(2, "♣"),
-    SPADES(3, "♠"),
+enum class Suit(val code: Int) {
+    HEARTS(0),
+    DIAMONDS(1),
+    CLUBS(2),
+    SPADES(3);
+
+    override fun toString(): String = when (this) {
+        HEARTS -> "♥"
+        DIAMONDS -> "♦"
+        CLUBS -> "♣"
+        SPADES -> "♠"
+    }
 }
 
-enum class Rank(val value: Int, val symbol: String) {
-    TWO(2, "2"),
-    THREE(3, "3"),
-    FOUR(4, "4"),
-    FIVE(5, "5"),
-    SIX(6, "6"),
-    SEVEN(7, "7"),
-    EIGHT(8, "8"),
-    NINE(9, "9"),
-    TEN(10, "T"),
-    JACK(11, "J"),
-    QUEEN(12, "Q"),
-    KING(13, "K"),
-    ACE(14, "A"),
-}
+enum class Rank(val value: Int) {
+    TWO(2),
+    THREE(3),
+    FOUR(4),
+    FIVE(5),
+    SIX(6),
+    SEVEN(7),
+    EIGHT(8),
+    NINE(9),
+    TEN(10),
+    JACK(11),
+    QUEEN(12),
+    KING(13),
+    ACE(14);
 
+    override fun toString(): String = when (this) {
+        TWO -> "2"
+        THREE -> "3"
+        FOUR -> "4"
+        FIVE -> "5"
+        SIX -> "6"
+        SEVEN -> "7"
+        EIGHT -> "8"
+        NINE -> "9"
+        TEN -> "T"
+        JACK -> "J"
+        QUEEN -> "Q"
+        KING -> "K"
+        ACE -> "A"
+    }
+}
 enum class Combination(val value: Int) {
     HIGH_CARD(1),
     ONE_PAIR(2),

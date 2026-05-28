@@ -7,11 +7,11 @@ class HandRankTest {
     @Test
     fun `compareTo returns 0 for identical hands`() {
         val hand1 = HandRank(
-            Combination.ONE_PAIR.value,
+            Combination.ONE_PAIR,
             listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.KING)),
         )
         val hand2 = HandRank(
-            Combination.ONE_PAIR.value,
+            Combination.ONE_PAIR,
             listOf(Card(Suit.CLUBS, Rank.KING), Card(Suit.SPADES, Rank.KING)),
         )
         assertEquals(0, hand1.compareTo(hand2))
@@ -19,26 +19,26 @@ class HandRankTest {
 
     @Test
     fun `compareTo returns positive when first hand has higher category`() {
-        val highCard = HandRank(Combination.HIGH_CARD.value, listOf(Card(Suit.HEARTS, Rank.ACE)))
-        val onePair = HandRank(Combination.ONE_PAIR.value, listOf(Card(Suit.HEARTS, Rank.TWO)))
+        val highCard = HandRank(Combination.HIGH_CARD, listOf(Card(Suit.HEARTS, Rank.ACE)))
+        val onePair = HandRank(Combination.ONE_PAIR, listOf(Card(Suit.HEARTS, Rank.TWO)))
         assertTrue(onePair.compareTo(highCard) > 0)
     }
 
     @Test
     fun `compareTo returns negative when second hand has higher category`() {
-        val highCard = HandRank(Combination.HIGH_CARD.value, listOf(Card(Suit.HEARTS, Rank.ACE)))
-        val onePair = HandRank(Combination.ONE_PAIR.value, listOf(Card(Suit.HEARTS, Rank.TWO)))
+        val highCard = HandRank(Combination.HIGH_CARD, listOf(Card(Suit.HEARTS, Rank.ACE)))
+        val onePair = HandRank(Combination.ONE_PAIR, listOf(Card(Suit.HEARTS, Rank.TWO)))
         assertTrue(highCard.compareTo(onePair) < 0)
     }
 
     @Test
     fun `compareTo compares pair rank as tiebreaker`() {
         val hand1 = HandRank(
-            Combination.ONE_PAIR.value,
+            Combination.ONE_PAIR,
             listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.KING), Card(Suit.CLUBS, Rank.ACE)),
         )
         val hand2 = HandRank(
-            Combination.ONE_PAIR.value,
+            Combination.ONE_PAIR,
             listOf(Card(Suit.HEARTS, Rank.QUEEN), Card(Suit.DIAMONDS, Rank.QUEEN), Card(Suit.CLUBS, Rank.ACE)),
         )
         assertTrue(hand1.compareTo(hand2) > 0)
@@ -47,7 +47,7 @@ class HandRankTest {
     @Test
     fun `compareTo compares full house trips rank first`() {
         val hand1 = HandRank(
-            Combination.FULL_HOUSE.value,
+            Combination.FULL_HOUSE,
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
                 Card(Suit.DIAMONDS, Rank.KING),
@@ -57,7 +57,7 @@ class HandRankTest {
             ),
         )
         val hand2 = HandRank(
-            Combination.FULL_HOUSE.value,
+            Combination.FULL_HOUSE,
             listOf(
                 Card(Suit.HEARTS, Rank.QUEEN),
                 Card(Suit.DIAMONDS, Rank.QUEEN),
@@ -72,7 +72,7 @@ class HandRankTest {
     @Test
     fun `compareTo compares full house pair rank when trips are equal`() {
         val hand1 = HandRank(
-            Combination.FULL_HOUSE.value,
+            Combination.FULL_HOUSE,
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
                 Card(Suit.DIAMONDS, Rank.KING),
@@ -82,7 +82,7 @@ class HandRankTest {
             ),
         )
         val hand2 = HandRank(
-            Combination.FULL_HOUSE.value,
+            Combination.FULL_HOUSE,
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
                 Card(Suit.DIAMONDS, Rank.KING),
@@ -97,7 +97,7 @@ class HandRankTest {
     @Test
     fun `compareTo compares two pair by higher pair first`() {
         val hand1 = HandRank(
-            Combination.TWO_PAIR.value,
+            Combination.TWO_PAIR,
             listOf(
                 Card(Suit.HEARTS, Rank.ACE),
                 Card(Suit.DIAMONDS, Rank.ACE),
@@ -107,7 +107,7 @@ class HandRankTest {
             ),
         )
         val hand2 = HandRank(
-            Combination.TWO_PAIR.value,
+            Combination.TWO_PAIR,
             listOf(
                 Card(Suit.HEARTS, Rank.QUEEN),
                 Card(Suit.DIAMONDS, Rank.QUEEN),
@@ -122,7 +122,7 @@ class HandRankTest {
     @Test
     fun `compareTo compares two pair by lower pair when higher pair is equal`() {
         val hand1 = HandRank(
-            Combination.TWO_PAIR.value,
+            Combination.TWO_PAIR,
             listOf(
                 Card(Suit.HEARTS, Rank.ACE),
                 Card(Suit.DIAMONDS, Rank.ACE),
@@ -132,7 +132,7 @@ class HandRankTest {
             ),
         )
         val hand2 = HandRank(
-            Combination.TWO_PAIR.value,
+            Combination.TWO_PAIR,
             listOf(
                 Card(Suit.HEARTS, Rank.ACE),
                 Card(Suit.DIAMONDS, Rank.ACE),
@@ -147,7 +147,7 @@ class HandRankTest {
     @Test
     fun `compareTo compares two pair by kicker when both pairs are equal`() {
         val hand1 = HandRank(
-            Combination.TWO_PAIR.value,
+            Combination.TWO_PAIR,
             listOf(
                 Card(Suit.HEARTS, Rank.ACE),
                 Card(Suit.DIAMONDS, Rank.ACE),
@@ -157,7 +157,7 @@ class HandRankTest {
             ),
         )
         val hand2 = HandRank(
-            Combination.TWO_PAIR.value,
+            Combination.TWO_PAIR,
             listOf(
                 Card(Suit.HEARTS, Rank.ACE),
                 Card(Suit.DIAMONDS, Rank.ACE),
@@ -172,11 +172,11 @@ class HandRankTest {
     @Test
     fun `compareTo compares high card hands by highest card first`() {
         val hand1 = HandRank(
-            Combination.HIGH_CARD.value,
+            Combination.HIGH_CARD,
             listOf(Card(Suit.HEARTS, Rank.KING), Card(Suit.DIAMONDS, Rank.QUEEN), Card(Suit.CLUBS, Rank.JACK)),
         )
         val hand2 = HandRank(
-            Combination.HIGH_CARD.value,
+            Combination.HIGH_CARD,
             listOf(Card(Suit.HEARTS, Rank.QUEEN), Card(Suit.DIAMONDS, Rank.JACK), Card(Suit.CLUBS, Rank.TEN)),
         )
         assertTrue(hand1.compareTo(hand2) > 0)
@@ -185,7 +185,7 @@ class HandRankTest {
     @Test
     fun `compareTo compares four of a kind by quads rank then kicker`() {
         val hand1 = HandRank(
-            Combination.FOUR_OF_A_KIND.value,
+            Combination.FOUR_OF_A_KIND,
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
                 Card(Suit.DIAMONDS, Rank.KING),
@@ -195,7 +195,7 @@ class HandRankTest {
             ),
         )
         val hand2 = HandRank(
-            Combination.FOUR_OF_A_KIND.value,
+            Combination.FOUR_OF_A_KIND,
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
                 Card(Suit.DIAMONDS, Rank.KING),
@@ -210,7 +210,7 @@ class HandRankTest {
     @Test
     fun `compareTo compares three of a kind by trips rank then kickers`() {
         val hand1 = HandRank(
-            Combination.THREE_OF_A_KIND.value,
+            Combination.THREE_OF_A_KIND,
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
                 Card(Suit.DIAMONDS, Rank.KING),
@@ -220,7 +220,7 @@ class HandRankTest {
             ),
         )
         val hand2 = HandRank(
-            Combination.THREE_OF_A_KIND.value,
+            Combination.THREE_OF_A_KIND,
             listOf(
                 Card(Suit.HEARTS, Rank.KING),
                 Card(Suit.DIAMONDS, Rank.KING),
