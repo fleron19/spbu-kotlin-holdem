@@ -84,6 +84,9 @@ class Controller(
         // Если все фолднули кроме одного, переходим к showdown
         if (preFlopOver && hand.phase == GamePhase.SHOWDOWN) {
             handleShowdown(hand)
+            if (isGameEnded()) {
+                view.printGameEnded()
+            }
             return
         }
 
@@ -118,6 +121,9 @@ class Controller(
                 if (hand.phase == GamePhase.SHOWDOWN) {
                     // Все фолднули, winner decided
                     handleShowdown(hand)
+                    if (isGameEnded()) {
+                        view.printGameEnded()
+                    }
                     return
                 }
                 // Все уравняли, продолжаем к следующей улице

@@ -1,8 +1,11 @@
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.*
@@ -31,9 +34,13 @@ class ViewGui(private val logger: Logger) : View {
     var toCall by mutableStateOf(0)
     var gameState by mutableStateOf(GameState.WAITING)
     var setupPlayers by mutableStateOf<List<Player>>(emptyList())
+    var gameName by mutableStateOf("")
+    var gameStarted by mutableStateOf(false)
 
     var showHoleCards by mutableStateOf(false)
-    val handRanks = mutableStateMapOf<UUID, HandRank>()
+    var showdownRevealed by mutableStateOf(false)
+    private val _handRanks = mutableMapOf<UUID, HandRank>()
+    var handRanks by mutableStateOf<Map<UUID, HandRank>>(emptyMap())
 
     var showDialog by mutableStateOf(false)
     var dialogTitle by mutableStateOf("")
@@ -72,7 +79,9 @@ class ViewGui(private val logger: Logger) : View {
         dealerIndex = hand.getDealerIndex()
         communityCards = hand.getCommunity()
         pot = hand.getPot().getTotal()
-        handRanks.clear()
+        _handRanks.clear()
+        showdownRevealed = false
+        handRanks = emptyMap()
         message = "Phase: ${hand.phase}, Pot: $pot"
     }
 
@@ -101,11 +110,12 @@ class ViewGui(private val logger: Logger) : View {
     override fun printBettingRoundComplete() { message = "Betting round complete" }
     override fun printToCall(amount: Int) { toCall = amount }
     override fun printInvalidAction() { message = "Invalid action!" }
-    override fun printAllPlayersFolded() { message = "All players folded!"; gameState = GameState.SHOWDOWN }
-    override fun printShowdownStart() { gameState = GameState.SHOWDOWN; message = "SHOWDOWN!" }
+    override fun printAllPlayersFolded() { message = "All players folded!"; gameState = GameState.SHOWDOWN; showdownRevealed = true; _handRanks.clear(); handRanks = emptyMap() }
+    override fun printShowdownStart() { gameState = GameState.SHOWDOWN; message = "SHOWDOWN!"; showdownRevealed = true; _handRanks.clear(); handRanks = emptyMap() }
     override fun printCommunityCards(cards: List<Card>) { communityCards = cards }
     override fun printHandRank(player: Player, rank: HandRank) {
-        handRanks[player.getId()] = rank
+        _handRanks[player.getId()] = rank
+        handRanks = _handRanks.toMap()
     }
     override fun printMessage(msg: String) { this.message = msg }
     override fun printError(msg: String) { message = "ERROR: $msg" }
@@ -131,14 +141,18 @@ class ViewGui(private val logger: Logger) : View {
         dialogDefault = default
         dialogInput = default.toString()
         showDialog = true
-        return runBlocking { intChannel.receive() }
+        val result = runBlocking { intChannel.receive() }
+        showDialog = false
+        return result
     }
 
     override fun readPlayerName(): String {
         dialogTitle = "Enter player name"
         dialogInput = ""
         showDialog = true
-        return runBlocking { stringChannel.receive() }
+        val result = runBlocking { stringChannel.receive() }
+        showDialog = false
+        return result
     }
 
     override fun readPositiveInt(prompt: String, default: Int): Int {
@@ -146,19 +160,25 @@ class ViewGui(private val logger: Logger) : View {
         dialogDefault = default
         dialogInput = default.toString()
         showDialog = true
-        return runBlocking { intChannel.receive() }
+        val result = runBlocking { intChannel.receive() }
+        showDialog = false
+        return result
     }
 
     override fun askAddPlayer(): Boolean {
         dialogTitle = "Add another player?"
         showDialog = true
-        return runBlocking { booleanChannel.receive() }
+        val result = runBlocking { booleanChannel.receive() }
+        showDialog = false
+        return result
     }
 
     override fun askNewHand(): Boolean {
         dialogTitle = "Start new hand?"
         showDialog = true
-        return runBlocking { booleanChannel.receive() }
+        val result = runBlocking { booleanChannel.receive() }
+        showDialog = false
+        return result
     }
 
     override fun readAction(hand: Hand, player: Player): Action {
@@ -173,7 +193,9 @@ class ViewGui(private val logger: Logger) : View {
         dialogDefault = minRaise
         dialogInput = minRaise.toString()
         showDialog = true
-        return runBlocking { intChannel.receive() }
+        val result = runBlocking { intChannel.receive() }
+        showDialog = false
+        return result
     }
 
     // --- UI callbacks ---
@@ -214,29 +236,32 @@ fun main() = application {
     val storage = FileStorage("./saves", logger)
     val controller = Controller(storage, logger, view)
 
-    LaunchedEffect(Unit) {
-        withContext(Dispatchers.Default) {
-            controller.startGame()
-            while (true) {
-                controller.startHand()
-                if (!view.askNewHand()) break
-            }
-            view.printMessage("Thanks for playing!")
-        }
-    }
-
     Window(
         onCloseRequest = { exitApplication() },
         title = "Texas Hold'em Poker",
-        state = rememberWindowState(width = 1400.dp, height = 900.dp)
+        state = rememberWindowState(width = 1920.dp, height = 1200.dp)
     ) {
-        PokerApp(view)
+        PokerApp(view, controller)
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun PokerApp(view: ViewGui) {
+fun PokerApp(view: ViewGui, controller: Controller) {
+    if (view.gameStarted) {
+        LaunchedEffect(Unit) {
+            withContext(Dispatchers.Default) {
+                controller.startGame()
+                while (true) {
+                    controller.startHand()
+                    if (view.gameState == GameState.GAME_OVER) break
+                    if (!view.askNewHand()) break
+                }
+                view.printMessage("Thanks for playing!")
+            }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFF003d00))) {
         TopAppBar(
             title = { Text("Texas Hold'em Poker", color = Color.White) },
@@ -249,7 +274,7 @@ fun PokerApp(view: ViewGui) {
         when (view.gameState) {
             GameState.WAITING -> {
                 if (view.setupPlayers.isEmpty()) {
-                    SetupWaitingScreen()
+                    GameSetupScreen(view)
                 } else {
                     PokerTable(view)
                 }
@@ -263,15 +288,162 @@ fun PokerApp(view: ViewGui) {
         }
     }
 
-    if (view.showDialog) {
+    if (view.showDialog && view.setupPlayers.isNotEmpty()) {
         InputDialog(view)
     }
 }
 
+data class SetupPlayer(val id: Int, val name: String, val stack: Int)
+
 @Composable
-fun SetupWaitingScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Setting up game...", fontSize = 24.sp, color = Color.White)
+fun GameSetupScreen(view: ViewGui) {
+    var gameNameInput by remember { mutableStateOf("") }
+    var sbText by remember { mutableStateOf("50") }
+    var bbText by remember { mutableStateOf("100") }
+    var players by remember { mutableStateOf(listOf<SetupPlayer>()) }
+
+    val isValid = gameNameInput.isNotBlank() &&
+            sbText.toIntOrNull() != null && sbText.toIntOrNull()!! > 0 &&
+            bbText.toIntOrNull() != null && bbText.toIntOrNull()!! > 0 &&
+            players.size >= 2 && players.all { it.name.isNotBlank() && it.stack > 0 }
+
+    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0d1b2a)), contentAlignment = Alignment.TopCenter) {
+        Column(
+            modifier = Modifier.fillMaxWidth(0.5f).padding(top = 40.dp).verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Game Setup", fontSize = 52.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Spacer(Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = gameNameInput,
+                onValueChange = { gameNameInput = it },
+                label = { Text("Game Name") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color.Gray,
+                    cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color.Gray
+                )
+            )
+            Spacer(Modifier.height(16.dp))
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                OutlinedTextField(
+                    value = sbText, onValueChange = { sbText = it.filter { c -> c.isDigit() } },
+                    label = { Text("Small Blind") }, singleLine = true, modifier = Modifier.weight(1f),
+                    textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color.Gray
+                    )
+                )
+                OutlinedTextField(
+                    value = bbText, onValueChange = { bbText = it.filter { c -> c.isDigit() } },
+                    label = { Text("Big Blind") }, singleLine = true, modifier = Modifier.weight(1f),
+                    textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color.Gray,
+                        cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color.Gray
+                    )
+                )
+            }
+
+            Spacer(Modifier.height(32.dp))
+            HorizontalDivider(color = Color.Gray)
+            Spacer(Modifier.height(16.dp))
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Players (${players.size}/10)", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Spacer(Modifier.width(16.dp))
+                if (players.size < 10) {
+                    OutlinedButton(
+                        onClick = { players = players + SetupPlayer(players.size + 1, "", 1000) },
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFF4CAF50))
+                    ) { Text("+ Add", fontSize = 18.sp) }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                players.forEachIndexed { idx, p ->
+                    Card(
+                        colors = CardDefaults.cardColors(Color(0xFF1b2838)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("${p.id}", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4CAF50),
+                                modifier = Modifier.width(40.dp))
+                            OutlinedTextField(
+                                value = p.name,
+                                onValueChange = { newName ->
+                                    players = players.mapIndexed { i, pl -> if (i == idx) pl.copy(name = newName) else pl }
+                                },
+                                label = { Text("Name") }, singleLine = true,
+                                modifier = Modifier.weight(1f),
+                                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color.Gray
+                                )
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            OutlinedTextField(
+                                value = p.stack.toString(),
+                                onValueChange = { newStack ->
+                                    val v = newStack.filter { c -> c.isDigit() }.toIntOrNull() ?: 0
+                                    players = players.mapIndexed { i, pl -> if (i == idx) pl.copy(stack = v) else pl }
+                                },
+                                label = { Text("Stack") }, singleLine = true,
+                                modifier = Modifier.width(120.dp),
+                                textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color.Gray,
+                                    cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color.Gray
+                                )
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            IconButton(onClick = {
+                                players = players.filterIndexed { i, _ -> i != idx }
+                                    .mapIndexed { i, pl -> SetupPlayer(i + 1, pl.name, pl.stack) }
+                            }) {
+                                Icon(Icons.Default.Close, "Delete", tint = Color.Red)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (players.size < 2) {
+                Spacer(Modifier.height(8.dp))
+                Text("Minimum 2 players required", fontSize = 16.sp, color = Color.Gray)
+            }
+
+            Spacer(Modifier.height(32.dp))
+            Button(
+                onClick = {
+                    view.gameName = gameNameInput
+                    view.submitInt(sbText.toInt())
+                    view.submitInt(bbText.toInt())
+                    players.forEachIndexed { i, p ->
+                        view.submitString(p.name)
+                        view.submitInt(p.stack)
+                        view.submitBoolean(i < players.size - 1)
+                    }
+                    view.gameStarted = true
+                },
+                enabled = isValid,
+                modifier = Modifier.fillMaxWidth().height(60.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+            ) { Text("Start Game", fontSize = 26.sp, fontWeight = FontWeight.Bold) }
+
+            Spacer(Modifier.height(40.dp))
+        }
     }
 }
 
@@ -322,11 +494,11 @@ fun PokerTable(view: ViewGui) {
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
-            val isShowdown = view.gameState == GameState.SHOWDOWN
-            view.players.filter { it.getStatus() != PlayerStatus.OUT }.forEach { player ->
+            val showAll = view.gameState == GameState.SHOWDOWN || view.showdownRevealed
+            view.players.filter { it.getStatus() != PlayerStatus.OUT && it.getStatus() != PlayerStatus.FOLDED }.forEach { player ->
                 val isThisPlayer = player == view.currentPlayer
-                val show = isShowdown || (isThisPlayer && view.showHoleCards)
-                PlayerCard(player, isDealer = view.dealerIndex == view.players.indexOf(player), showCards = show, onCardClick = if (isThisPlayer && !isShowdown) {{ view.toggleHoleCards() }} else null, isCurrentPlayer = isThisPlayer, handRank = view.handRanks[player.getId()])
+                val show = showAll || (isThisPlayer && view.showHoleCards)
+                PlayerCard(player, isDealer = view.dealerIndex == view.players.indexOf(player), showCards = show, onCardClick = if (isThisPlayer && !showAll) {{ view.toggleHoleCards() }} else null, isCurrentPlayer = isThisPlayer, handRank = view.handRanks[player.getId()])
             }
         }
 
@@ -334,9 +506,9 @@ fun PokerTable(view: ViewGui) {
             modifier = Modifier.fillMaxWidth().weight(1f).padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Pot: ${view.pot}", fontSize = 64.sp, fontWeight = FontWeight.Bold, color = Color.Yellow)
-            Spacer(modifier = Modifier.height(32.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("Pot: ${view.pot}", fontSize = 80.sp, fontWeight = FontWeight.Bold, color = Color.Yellow)
+            Spacer(modifier = Modifier.height(40.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
                 view.communityCards.forEach { card ->
                     CardView(card)
                 }
@@ -344,16 +516,16 @@ fun PokerTable(view: ViewGui) {
                     CardPlaceholder()
                 }
             }
-            Spacer(modifier = Modifier.height(32.dp))
-            Text(view.message, fontSize = 40.sp, color = Color.White)
+            Spacer(modifier = Modifier.height(40.dp))
+            Text(view.message, fontSize = 52.sp, color = Color.White)
         }
 
         Column(
-            modifier = Modifier.fillMaxWidth().height(450.dp),
+            modifier = Modifier.fillMaxWidth().height(600.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             view.currentPlayer?.let { player ->
-                val show = view.gameState == GameState.SHOWDOWN || view.showHoleCards
+                val show = view.gameState == GameState.SHOWDOWN || view.showdownRevealed || view.showHoleCards
                 PlayerCard(player, isDealer = view.dealerIndex == view.players.indexOf(player), showCards = show, onCardClick = { view.toggleHoleCards() }, isCurrentPlayer = true, handRank = view.handRanks[player.getId()])
             }
             Spacer(modifier = Modifier.height(16.dp))
@@ -364,7 +536,7 @@ fun PokerTable(view: ViewGui) {
 
 @Composable
 fun ActionButtons(view: ViewGui) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         ActionButton("Fold", Color.Red) { view.submitAction(Action.FOLD) }
         if (view.toCall > 0) {
             ActionButton("Call ${view.toCall}", Color.Blue) { view.submitAction(Action.CALL) }
@@ -378,28 +550,34 @@ fun ActionButtons(view: ViewGui) {
 
 @Composable
 fun PlayerCard(player: Player, isDealer: Boolean, showCards: Boolean = false, onCardClick: (() -> Unit)? = null, isCurrentPlayer: Boolean = false, handRank: HandRank? = null) {
-    val borderMod = if (isCurrentPlayer) Modifier.border(3.dp, Color.Yellow, RoundedCornerShape(8.dp)) else Modifier
+    val borderMod = if (isCurrentPlayer) Modifier.border(4.dp, Color.Yellow, RoundedCornerShape(12.dp)) else Modifier
     Card(
-        modifier = Modifier.width(280.dp).height(230.dp).then(borderMod).then(
+        modifier = Modifier.width(350.dp).height(290.dp).then(borderMod).then(
             if (onCardClick != null) Modifier.clickable { onCardClick() } else Modifier
         ),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(Color(0xFF2D2D2D))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(player.name, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color.White)
-                if (isDealer) Text(" D", color = Color.Yellow, fontSize = 24.sp)
+                Text(player.name, fontWeight = FontWeight.Bold, fontSize = 36.sp, color = Color.White)
+                if (isDealer) {
+                    Box(
+                        modifier = Modifier.padding(start = 12.dp).background(Color.Yellow, RoundedCornerShape(6.dp)).padding(horizontal = 14.dp, vertical = 4.dp)
+                    ) {
+                        Text("D", fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color.Black)
+                    }
+                }
                 handRank?.let {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("- ${formatHandRank(it)}", fontSize = 16.sp, color = Color.Cyan)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text("- ${formatHandRank(it)}", fontSize = 22.sp, color = Color.Cyan)
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Chips: ${player.getStack()}", fontSize = 24.sp, color = Color(0xFFFFD700))
+            Spacer(modifier = Modifier.height(12.dp))
+            Text("Chips: ${player.getStack()}", fontSize = 30.sp, color = Color(0xFFFFD700))
             if (player.getHole().isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     if (showCards) {
                         player.getHole().forEach { card ->
                             MiniCard(card)
@@ -435,18 +613,18 @@ fun formatHandRank(rank: HandRank): String {
 @Composable
 fun CardBack() {
     Box(
-        modifier = Modifier.width(96.dp).height(136.dp).background(Color(0xFF1a3a8a), RoundedCornerShape(4.dp)),
+        modifier = Modifier.width(120.dp).height(170.dp).background(Color(0xFF1a3a8a), RoundedCornerShape(6.dp)),
         contentAlignment = Alignment.Center
     ) {
-        Text("?", fontSize = 40.sp, color = Color.White)
+        Text("?", fontSize = 50.sp, color = Color.White)
     }
 }
 
 @Composable
 fun CardView(card: Card) {
     Card(
-        modifier = Modifier.width(140.dp).height(200.dp),
-        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.width(180.dp).height(260.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(Color.White)
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -455,8 +633,8 @@ fun CardView(card: Card) {
                 else -> Color.Black
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(card.rank.toString(), fontSize = 40.sp, fontWeight = FontWeight.Bold, color = color)
-                Text(card.suit.toString(), fontSize = 48.sp, color = color)
+                Text(card.rank.toString(), fontSize = 52.sp, fontWeight = FontWeight.Bold, color = color)
+                Text(card.suit.toString(), fontSize = 60.sp, color = color)
             }
         }
     }
@@ -465,26 +643,29 @@ fun CardView(card: Card) {
 @Composable
 fun MiniCard(card: Card) {
     Box(
-        modifier = Modifier.width(96.dp).height(136.dp).background(Color.White, RoundedCornerShape(4.dp)),
+        modifier = Modifier.width(120.dp).height(170.dp).background(Color.White, RoundedCornerShape(6.dp)),
         contentAlignment = Alignment.Center
     ) {
         val color = when (card.suit) {
             Suit.HEARTS, Suit.DIAMONDS -> Color.Red
             else -> Color.Black
         }
-        Text(card.suit.toString(), fontSize = 40.sp, color = color)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(card.rank.toString(), fontSize = 40.sp, fontWeight = FontWeight.Bold, color = color)
+            Text(card.suit.toString(), fontSize = 36.sp, color = color)
+        }
     }
 }
 
 @Composable
 fun CardPlaceholder() {
     Card(
-        modifier = Modifier.width(140.dp).height(200.dp),
-        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.width(180.dp).height(260.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(Color(0xFF3D3D3D))
     ) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("?", fontSize = 48.sp, color = Color.Gray)
+            Text("?", fontSize = 60.sp, color = Color.Gray)
         }
     }
 }
@@ -493,10 +674,10 @@ fun CardPlaceholder() {
 fun ActionButton(text: String, color: Color, onClick: () -> Unit) {
     Button(
         onClick = onClick,
-        modifier = Modifier.width(180.dp).height(80.dp),
+        modifier = Modifier.width(240.dp).height(100.dp),
         colors = ButtonDefaults.buttonColors(containerColor = color)
     ) {
-        Text(text, fontSize = 24.sp)
+        Text(text, fontSize = 30.sp, fontWeight = FontWeight.Bold)
     }
 }
 
