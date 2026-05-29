@@ -202,6 +202,8 @@ classDiagram
         <<interface>>
         + saveGame(g: Game) Unit
         + loadGame(id: UUID) Game?
+        + saveGameSetup(name: String, playerNames: List~String~, playerStacks: List~Int~, dealerIndex: Int, sb: Int, bb: Int) Unit
+        + loadGameSetup(name: String) GameSetupData?
     }
 
     class View {
@@ -257,6 +259,22 @@ classDiagram
         + loadGame(id: UUID) Game?
     }
 
+    class SqliteStorage {
+        - dbPath: String
+        - connection: Connection
+        + saveGameSetup(name: String, playerNames: List~String~, playerStacks: List~Int~, dealerIndex: Int, sb: Int, bb: Int) Unit
+        + loadGameSetup(name: String) GameSetupData?
+    }
+
+    class GameSetupData {
+        + gameName: String
+        + playerNames: List~String~
+        + playerStacks: List~Int~
+        + dealerIndex: Int
+        + sb: Int
+        + bb: Int
+    }
+
     class ViewCli {
         - scanner: Scanner
         - logger: Logger
@@ -272,11 +290,18 @@ classDiagram
         + gameName: String
         + gameStarted: Boolean
         + setupDealerIndex: Int
+        + setupGameNameInput: String
+        + setupSBText: String
+        + setupBBText: String
+        + setupPlayersList: List~SetupPlayer~
+        + setupFormInited: Boolean
         + lastGameName: String
         + lastSB: Int
         + lastBB: Int
         + lastPlayers: List~PersistedPlayer~
         + showExitDialog: Boolean
+        + showSaveOverwriteDialog: Boolean
+        + pendingSaveGameName: String
         + showHoleCards: Boolean
         + ... (все методы View)
         + submitString(value: String) Unit
@@ -340,6 +365,7 @@ classDiagram
     ViewGui --|> View : implements
     ConsoleLogger --|> Logger : implements
     FileStorage --|> Storage : implements
+    SqliteStorage --|> Storage : implements
 ```
 
 ## Слои архитектуры
@@ -357,6 +383,8 @@ classDiagram
 - **ActionProcessor** - валидация и выполнение действий игроков
 - **Logger** (interface), **ConsoleLogger** - логирование
 - **Storage** (interface), **FileStorage** - сохранение/загрузка игр (Java serialization)
+- **SqliteStorage** - сохранение/загрузка конфигураций игры в SQLite
+- **GameSetupData** - данные конфигурации игры (название, игроки, блайнды)
 
 ### Application Layer
 - **Controller** - координация игрового процесса, MVC контроллер
