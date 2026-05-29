@@ -21,6 +21,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withContext
 import java.util.UUID
+import kotlin.system.exitProcess
 
 private val suitSymbol: (Suit) -> String = {
     when (it) { Suit.SPADES -> "\u2660"; Suit.HEARTS -> "\u2665"; Suit.DIAMONDS -> "\u2666"; Suit.CLUBS -> "\u2663" }
@@ -46,6 +47,12 @@ class ViewGui(private val logger: Logger) : View {
     var gameName by mutableStateOf("")
     var gameStarted by mutableStateOf(false)
 
+    var setupDealerIndex by mutableStateOf(-1)
+    var lastGameName by mutableStateOf("")
+    var lastSB by mutableStateOf(50)
+    var lastBB by mutableStateOf(100)
+    var lastPlayers by mutableStateOf<List<PersistedPlayer>>(emptyList())
+    var showExitDialog by mutableStateOf(false)
     var showHoleCards by mutableStateOf(false)
     var showdownRevealed by mutableStateOf(false)
     private val _handRanks = mutableMapOf<UUID, HandRank>()
@@ -246,7 +253,7 @@ fun main() = application {
     val controller = Controller(storage, logger, view)
 
     Window(
-        onCloseRequest = { exitApplication() },
+        onCloseRequest = { view.showExitDialog = true },
         title = "Texas Hold'em Poker",
         state = rememberWindowState(width = 1920.dp, height = 1200.dp)
     ) {
@@ -261,11 +268,22 @@ fun PokerApp(view: ViewGui, controller: Controller) {
         LaunchedEffect(Unit) {
             withContext(Dispatchers.Default) {
                 controller.startGame()
+                if (view.setupDealerIndex >= 0) {
+                    controller.getGame()?.setDealer(view.setupDealerIndex)
+                }
                 while (true) {
                     controller.startHand()
                     if (view.gameState == GameState.GAME_OVER) break
                     if (!view.askNewHand()) break
                 }
+                view.lastGameName = view.gameName
+                view.lastSB = view.smallBlind
+                view.lastBB = view.bigBlind
+                view.lastPlayers = view.players.mapIndexed { i, p ->
+                    PersistedPlayer(p.name, p.getStack(), i == view.dealerIndex)
+                }
+                view.setupPlayers = emptyList()
+                view.gameStarted = false
                 view.printMessage("Thanks for playing!")
             }
         }
@@ -273,7 +291,24 @@ fun PokerApp(view: ViewGui, controller: Controller) {
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFF0D1B2A))) {
         TopAppBar(
-            title = { Text("\u2660  Texas Hold'em Poker  \u2663", color = Color.White) },
+            navigationIcon = {
+                IconButton(onClick = { view.showExitDialog = true }) {
+                    Icon(Icons.Default.Close, "Close", tint = Color.White)
+                }
+            },
+            title = {
+                val titleText = if (view.gameName.isNotBlank()) view.gameName else "Texas Hold'em Poker"
+                Text("\u2660  $titleText  \u2663", color = Color.White)
+            },
+            actions = {
+                TextButton(onClick = { view.message = "Save" }) {
+                    Text("Save", color = Color.White, fontSize = 18.sp)
+                }
+                Spacer(Modifier.width(4.dp))
+                TextButton(onClick = { view.message = "Load" }) {
+                    Text("Load", color = Color.White, fontSize = 18.sp)
+                }
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color(0xFF1a1a1a),
                 titleContentColor = Color.White
@@ -300,16 +335,50 @@ fun PokerApp(view: ViewGui, controller: Controller) {
     if (view.showDialog && view.setupPlayers.isNotEmpty()) {
         InputDialog(view)
     }
+
+    if (view.showExitDialog) {
+        AlertDialog(
+            onDismissRequest = { view.showExitDialog = false },
+            containerColor = Color(0xFF1B2838),
+            titleContentColor = Color.White,
+            textContentColor = Color(0xFFBDBDBD),
+            iconContentColor = Color.White,
+            title = { Text("Exit", fontWeight = FontWeight.Bold) },
+            text = { Text("Are you sure you want to exit? Unsaved data will not be saved.",
+                color = Color(0xFFBDBDBD)) },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = { exitProcess(0) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
+                    ) { Text("Yes") }
+                    Button(
+                        onClick = { view.showExitDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF616161))
+                    ) { Text("No") }
+                }
+            }
+        )
+    }
 }
 
-data class SetupPlayer(val id: Int, val name: String, val stack: Int)
+data class SetupPlayer(val id: Int, val name: String, val stack: Int, val isDealer: Boolean = false)
+data class PersistedPlayer(val name: String, val stack: Int, val isDealer: Boolean)
 
 @Composable
 fun GameSetupScreen(view: ViewGui) {
-    var gameNameInput by remember { mutableStateOf("") }
-    var sbText by remember { mutableStateOf("50") }
-    var bbText by remember { mutableStateOf("100") }
-    var players by remember { mutableStateOf(listOf<SetupPlayer>()) }
+    var gameNameInput by remember { mutableStateOf(view.lastGameName) }
+    var sbText by remember { mutableStateOf(view.lastSB.toString()) }
+    var bbText by remember { mutableStateOf(view.lastBB.toString()) }
+    var players by remember {
+        mutableStateOf(
+            if (view.lastPlayers.isNotEmpty()) {
+                view.lastPlayers.mapIndexed { i, p -> SetupPlayer(i + 1, p.name, p.stack, p.isDealer) }
+            } else {
+                emptyList()
+            }
+        )
+    }
 
     val isValid = gameNameInput.isNotBlank() &&
             sbText.toIntOrNull() != null && sbText.toIntOrNull()!! > 0 &&
@@ -389,7 +458,10 @@ fun GameSetupScreen(view: ViewGui) {
                 Spacer(Modifier.width(16.dp))
                 if (players.size < 10) {
                     OutlinedButton(
-                        onClick = { players = players + SetupPlayer(players.size + 1, "", 1000) },
+                        onClick = {
+                            val newId = players.size + 1
+                            players = players + SetupPlayer(newId, "", 1000, isDealer = players.isEmpty())
+                        },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF4CAF50)),
                         border = BorderStroke(1.dp, Color(0xFF4CAF50))
                     ) { Text("+ Add Player", fontSize = 16.sp) }
@@ -414,6 +486,21 @@ fun GameSetupScreen(view: ViewGui) {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text("${p.id}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            // Dealer toggle
+                            Box(
+                                modifier = Modifier.width(36.dp).height(36.dp)
+                                    .background(
+                                        if (p.isDealer) Color(0xFFFFD700) else Color(0xFF555555),
+                                        RoundedCornerShape(18.dp)
+                                    ).clickable {
+                                        players = players.mapIndexed { i, pl -> pl.copy(isDealer = i == idx) }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("D", fontWeight = FontWeight.Bold, fontSize = 18.sp,
+                                    color = if (p.isDealer) Color.Black else Color.White)
                             }
                             Spacer(Modifier.width(12.dp))
                             OutlinedTextField(
@@ -446,8 +533,12 @@ fun GameSetupScreen(view: ViewGui) {
                             )
                             Spacer(Modifier.width(8.dp))
                             IconButton(onClick = {
-                                players = players.filterIndexed { i, _ -> i != idx }
-                                    .mapIndexed { i, pl -> SetupPlayer(i + 1, pl.name, pl.stack) }
+                                val wasDealer = players[idx].isDealer
+                                val filtered = players.filterIndexed { i, _ -> i != idx }
+                                players = filtered.mapIndexed { i, pl ->
+                                    SetupPlayer(i + 1, pl.name, pl.stack,
+                                        isDealer = if (wasDealer) i == 0 else pl.isDealer)
+                                }
                             }) {
                                 Icon(Icons.Default.Close, "Delete", tint = Color(0xFFE53935))
                             }
@@ -465,6 +556,7 @@ fun GameSetupScreen(view: ViewGui) {
             Button(
                 onClick = {
                     view.gameName = gameNameInput
+                    view.setupDealerIndex = players.indexOfFirst { it.isDealer }
                     view.submitInt(sbText.toInt())
                     view.submitInt(bbText.toInt())
                     players.forEachIndexed { i, p ->
