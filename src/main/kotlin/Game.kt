@@ -30,9 +30,13 @@ class Game(
         _players.removeIf { it.getId() == p.getId() }
     }
 
+    fun setDealer(index: Int) {
+        dealer = index
+    }
+
     fun startHand(): Hand {
-        dealer = (dealer + 1) % players.size
         val hand = Hand(UUID.randomUUID(), players, dealerIndex = dealer)
+        dealer = (dealer + 1) % players.size
         hand.dealHole()
         currentHand = hand
         currentBet = 0

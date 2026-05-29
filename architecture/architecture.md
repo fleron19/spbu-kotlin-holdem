@@ -62,7 +62,15 @@ classDiagram
         + ROYAL_FLUSH(10)
         + value: Int
     }
-
+ 
+    class GameState {
+        <<enum>>
+        + WAITING
+        + PLAYER_TURN
+        + SHOWDOWN
+        + GAME_OVER
+    }
+ 
     %% Core domain classes
     class Card {
         + suit: Suit
@@ -148,6 +156,7 @@ classDiagram
         - players: MutableList~Player~
         - currentHand: Hand?
         - currentBet: Int
+        - dealer: Int
         + getId() UUID
         + getPlayers() List~Player~
         + getCurrentHand() Hand?
@@ -157,6 +166,7 @@ classDiagram
         + isHandInProgress() Boolean
         + addPlayer(p: Player) Unit
         + removePlayer(p: Player) Unit
+        + setDealer(index: Int) Unit
         + startHand() Hand
         + clearHand() Unit
     }
@@ -254,7 +264,41 @@ classDiagram
         + printGameInfo(game: Game) Unit
         + ... (все методы View)
     }
-
+ 
+    class ViewGui {
+        - logger: Logger
+        + message: String
+        + players: List~Player~
+        + gameName: String
+        + gameStarted: Boolean
+        + setupDealerIndex: Int
+        + lastGameName: String
+        + lastSB: Int
+        + lastBB: Int
+        + lastPlayers: List~PersistedPlayer~
+        + showExitDialog: Boolean
+        + showHoleCards: Boolean
+        + ... (все методы View)
+        + submitString(value: String) Unit
+        + submitInt(value: Int) Unit
+        + submitBoolean(value: Boolean) Unit
+        + submitAction(action: Action) Unit
+        + toggleHoleCards() Unit
+    }
+ 
+    class SetupPlayer {
+        + id: Int
+        + name: String
+        + stack: Int
+        + isDealer: Boolean
+    }
+ 
+    class PersistedPlayer {
+        + name: String
+        + stack: Int
+        + isDealer: Boolean
+    }
+ 
     class Controller {
         - storage: Storage
         - logger: Logger
@@ -293,6 +337,7 @@ classDiagram
     ActionProcessor ..> Pot : updates
     ActionProcessor ..> Logger : logs
     ViewCli --|> View : implements
+    ViewGui --|> View : implements
     ConsoleLogger --|> Logger : implements
     FileStorage --|> Storage : implements
 ```
