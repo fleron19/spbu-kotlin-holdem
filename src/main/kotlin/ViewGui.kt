@@ -86,11 +86,22 @@ class ViewGui(private val logger: Logger) : View {
     var gameStarted by mutableStateOf(false)
 
     var setupDealerIndex by mutableStateOf(-1)
+
+    var setupGameNameInput by mutableStateOf("")
+    var setupSBText by mutableStateOf("50")
+    var setupBBText by mutableStateOf("100")
+    var setupPlayersList by mutableStateOf<List<SetupPlayer>>(emptyList())
+    var setupFormInited by mutableStateOf(false)
+
     var lastGameName by mutableStateOf("")
     var lastSB by mutableStateOf(50)
     var lastBB by mutableStateOf(100)
     var lastPlayers by mutableStateOf<List<PersistedPlayer>>(emptyList())
     var showExitDialog by mutableStateOf(false)
+    var showSaveOverwriteDialog by mutableStateOf(false)
+    var pendingSaveGameName by mutableStateOf("")
+    var showLoadErrorDialog by mutableStateOf(false)
+    var pendingLoadErrorName by mutableStateOf("")
     var showHoleCards by mutableStateOf(false)
     var showdownRevealed by mutableStateOf(false)
     private val _handRanks = mutableMapOf<UUID, HandRank>()
@@ -348,6 +359,8 @@ fun main() = application {
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
 fun pokerApp(view: ViewGui, controller: Controller) {
+    val sqliteStorage = remember { SqliteStorage() }
+
     if (view.gameStarted) {
         LaunchedEffect(Unit) {
             withContext(Dispatchers.Default) {
@@ -367,6 +380,7 @@ fun pokerApp(view: ViewGui, controller: Controller) {
                     PersistedPlayer(p.name, p.getStack(), i == view.dealerIndex)
                 }
                 view.setupPlayers = emptyList()
+                view.setupFormInited = false
                 view.gameStarted = false
                 view.printMessage("Thanks for playing!")
             }
@@ -385,11 +399,51 @@ fun pokerApp(view: ViewGui, controller: Controller) {
                 Text("\u2660  $titleText  \u2663", color = Color.White)
             },
             actions = {
-                TextButton(onClick = { view.message = "Save" }) {
+                TextButton(onClick = {
+                    val name = view.setupGameNameInput
+                    if (name.isBlank()) {
+                        view.message = "Enter a game name first"
+                        return@TextButton
+                    }
+                    val existing = sqliteStorage.loadGameSetup(name)
+                    if (existing != null) {
+                        view.pendingSaveGameName = name
+                        view.showSaveOverwriteDialog = true
+                    } else {
+                        sqliteStorage.saveGameSetup(
+                            name,
+                            view.setupPlayersList.map { it.name },
+                            view.setupPlayersList.map { it.stack },
+                            view.setupPlayersList.indexOfFirst { it.isDealer }.coerceAtLeast(0),
+                            view.setupSBText.toIntOrNull() ?: 0,
+                            view.setupBBText.toIntOrNull() ?: 0,
+                        )
+                        view.message = "Game saved!"
+                    }
+                }) {
                     Text("Save", color = Color.White, fontSize = 18.sp)
                 }
                 Spacer(Modifier.width(4.dp))
-                TextButton(onClick = { view.message = "Load" }) {
+                TextButton(onClick = {
+                    val name = view.setupGameNameInput
+                    if (name.isBlank()) {
+                        view.message = "Enter a game name to load"
+                        return@TextButton
+                    }
+                    val data = sqliteStorage.loadGameSetup(name)
+                    if (data != null) {
+                        view.setupGameNameInput = data.gameName
+                        view.setupSBText = data.sb.toString()
+                        view.setupBBText = data.bb.toString()
+                        view.setupPlayersList = data.playerNames.mapIndexed { i, pn ->
+                            SetupPlayer(i + 1, pn, data.playerStacks[i], isDealer = i == data.dealerIndex)
+                        }
+                        view.message = "Game loaded!"
+                    } else {
+                        view.pendingLoadErrorName = name
+                        view.showLoadErrorDialog = true
+                    }
+                }) {
                     Text("Load", color = Color.White, fontSize = 18.sp)
                 }
             },
@@ -402,6 +456,17 @@ fun pokerApp(view: ViewGui, controller: Controller) {
         when (view.gameState) {
             GameState.WAITING -> {
                 if (view.setupPlayers.isEmpty()) {
+                    if (!view.setupFormInited) {
+                        view.setupGameNameInput = view.lastGameName
+                        view.setupSBText = view.lastSB.toString()
+                        view.setupBBText = view.lastBB.toString()
+                        view.setupPlayersList = if (view.lastPlayers.isNotEmpty()) {
+                            view.lastPlayers.mapIndexed { i, p -> SetupPlayer(i + 1, p.name, p.stack, p.isDealer) }
+                        } else {
+                            emptyList()
+                        }
+                        view.setupFormInited = true
+                    }
                     gameSetupScreen(view)
                 } else {
                     pokerTable(view)
@@ -448,6 +513,62 @@ fun pokerApp(view: ViewGui, controller: Controller) {
             },
         )
     }
+
+    if (view.showSaveOverwriteDialog) {
+        AlertDialog(
+            onDismissRequest = { view.showSaveOverwriteDialog = false },
+            containerColor = Color(0xFF1B2838),
+            titleContentColor = Color.White,
+            textContentColor = Color(0xFFBDBDBD),
+            title = { Text("Overwrite?") },
+            text = {
+                Text("Game '${view.pendingSaveGameName}' already exists. Overwrite?", color = Color(0xFFBDBDBD))
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            val name = view.pendingSaveGameName
+                            sqliteStorage.saveGameSetup(
+                                name,
+                                view.setupPlayersList.map { it.name },
+                                view.setupPlayersList.map { it.stack },
+                                view.setupPlayersList.indexOfFirst { it.isDealer }.coerceAtLeast(0),
+                                view.setupSBText.toIntOrNull() ?: 0,
+                                view.setupBBText.toIntOrNull() ?: 0,
+                            )
+                            view.showSaveOverwriteDialog = false
+                            view.message = "Game saved!"
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                    ) { Text("Yes") }
+                    Button(
+                        onClick = { view.showSaveOverwriteDialog = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF616161)),
+                    ) { Text("No") }
+                }
+            },
+        )
+    }
+
+    if (view.showLoadErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { view.showLoadErrorDialog = false },
+            containerColor = Color(0xFF1B2838),
+            titleContentColor = Color.White,
+            textContentColor = Color(0xFFBDBDBD),
+            title = { Text("Game not found") },
+            text = {
+                Text("Game '${view.pendingLoadErrorName}' not found!", color = Color(0xFFBDBDBD))
+            },
+            confirmButton = {
+                Button(
+                    onClick = { view.showLoadErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                ) { Text("OK") }
+            },
+        )
+    }
 }
 
 data class SetupPlayer(val id: Int, val name: String, val stack: Int, val isDealer: Boolean = false)
@@ -455,23 +576,10 @@ data class PersistedPlayer(val name: String, val stack: Int, val isDealer: Boole
 
 @Composable
 fun gameSetupScreen(view: ViewGui) {
-    var gameNameInput by remember { mutableStateOf(view.lastGameName) }
-    var sbText by remember { mutableStateOf(view.lastSB.toString()) }
-    var bbText by remember { mutableStateOf(view.lastBB.toString()) }
-    var players by remember {
-        mutableStateOf(
-            if (view.lastPlayers.isNotEmpty()) {
-                view.lastPlayers.mapIndexed { i, p -> SetupPlayer(i + 1, p.name, p.stack, p.isDealer) }
-            } else {
-                emptyList()
-            },
-        )
-    }
-
-    val isValid = gameNameInput.isNotBlank() &&
-        sbText.toIntOrNull() != null && sbText.toIntOrNull()!! > 0 &&
-        bbText.toIntOrNull() != null && bbText.toIntOrNull()!! > 0 &&
-        players.size >= 2 && players.all { it.name.isNotBlank() && it.stack > 0 }
+    val isValid = view.setupGameNameInput.isNotBlank() &&
+        view.setupSBText.toIntOrNull() != null && view.setupSBText.toIntOrNull()!! > 0 &&
+        view.setupBBText.toIntOrNull() != null && view.setupBBText.toIntOrNull()!! > 0 &&
+        view.setupPlayersList.size >= 2 && view.setupPlayersList.all { it.name.isNotBlank() && it.stack > 0 }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0D1B2A)), contentAlignment = Alignment.TopCenter) {
         Column(
@@ -507,8 +615,8 @@ fun gameSetupScreen(view: ViewGui) {
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     OutlinedTextField(
-                        value = gameNameInput,
-                        onValueChange = { gameNameInput = it },
+                        value = view.setupGameNameInput,
+                        onValueChange = { view.setupGameNameInput = it },
                         label = { Text("Game Name") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -525,8 +633,8 @@ fun gameSetupScreen(view: ViewGui) {
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         OutlinedTextField(
-                            value = sbText,
-                            onValueChange = { sbText = it.filter { c -> c.isDigit() } },
+                            value = view.setupSBText,
+                            onValueChange = { view.setupSBText = it.filter { c -> c.isDigit() } },
                             label = { Text("Small Blind") },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
@@ -540,8 +648,8 @@ fun gameSetupScreen(view: ViewGui) {
                             ),
                         )
                         OutlinedTextField(
-                            value = bbText,
-                            onValueChange = { bbText = it.filter { c -> c.isDigit() } },
+                            value = view.setupBBText,
+                            onValueChange = { view.setupBBText = it.filter { c -> c.isDigit() } },
                             label = { Text("Big Blind") },
                             singleLine = true,
                             modifier = Modifier.weight(1f),
@@ -563,13 +671,13 @@ fun gameSetupScreen(view: ViewGui) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Players", fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 Spacer(Modifier.width(12.dp))
-                Text("(${players.size}/10)", fontSize = 20.sp, color = Color(0xFF9E9E9E))
+                Text("(${view.setupPlayersList.size}/10)", fontSize = 20.sp, color = Color(0xFF9E9E9E))
                 Spacer(Modifier.width(16.dp))
-                if (players.size < 10) {
+                if (view.setupPlayersList.size < 10) {
                     OutlinedButton(
                         onClick = {
-                            val newId = players.size + 1
-                            players = players + SetupPlayer(newId, "", 1000, isDealer = players.isEmpty())
+                            val newId = view.setupPlayersList.size + 1
+                            view.setupPlayersList = view.setupPlayersList + SetupPlayer(newId, "", 1000, isDealer = view.setupPlayersList.isEmpty())
                         },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF4CAF50)),
                         border = BorderStroke(1.dp, Color(0xFF4CAF50)),
@@ -579,7 +687,7 @@ fun gameSetupScreen(view: ViewGui) {
             Spacer(Modifier.height(16.dp))
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                players.forEachIndexed { idx, p ->
+                view.setupPlayersList.forEachIndexed { idx, p ->
                     Card(
                         colors = CardDefaults.cardColors(Color(0xFF1B2838)),
                         shape = RoundedCornerShape(12.dp),
@@ -604,7 +712,7 @@ fun gameSetupScreen(view: ViewGui) {
                                         if (p.isDealer) Color(0xFFFFD700) else Color(0xFF555555),
                                         RoundedCornerShape(18.dp),
                                     ).clickable {
-                                        players = players.mapIndexed { i, pl -> pl.copy(isDealer = i == idx) }
+                                        view.setupPlayersList = view.setupPlayersList.mapIndexed { i, pl -> pl.copy(isDealer = i == idx) }
                                     },
                                 contentAlignment = Alignment.Center,
                             ) {
@@ -619,7 +727,7 @@ fun gameSetupScreen(view: ViewGui) {
                             OutlinedTextField(
                                 value = p.name,
                                 onValueChange = { newName ->
-                                    players = players.mapIndexed { i, pl -> if (i == idx) pl.copy(name = newName) else pl }
+                                    view.setupPlayersList = view.setupPlayersList.mapIndexed { i, pl -> if (i == idx) pl.copy(name = newName) else pl }
                                 },
                                 label = { Text("Name") },
                                 singleLine = true,
@@ -638,7 +746,7 @@ fun gameSetupScreen(view: ViewGui) {
                                 value = p.stack.toString(),
                                 onValueChange = { newStack ->
                                     val v = newStack.filter { c -> c.isDigit() }.toIntOrNull() ?: 0
-                                    players = players.mapIndexed { i, pl -> if (i == idx) pl.copy(stack = v) else pl }
+                                    view.setupPlayersList = view.setupPlayersList.mapIndexed { i, pl -> if (i == idx) pl.copy(stack = v) else pl }
                                 },
                                 label = { Text("Stack") },
                                 singleLine = true,
@@ -654,9 +762,9 @@ fun gameSetupScreen(view: ViewGui) {
                             )
                             Spacer(Modifier.width(8.dp))
                             IconButton(onClick = {
-                                val wasDealer = players[idx].isDealer
-                                val filtered = players.filterIndexed { i, _ -> i != idx }
-                                players = filtered.mapIndexed { i, pl ->
+                                val wasDealer = view.setupPlayersList[idx].isDealer
+                                val filtered = view.setupPlayersList.filterIndexed { i, _ -> i != idx }
+                                view.setupPlayersList = filtered.mapIndexed { i, pl ->
                                     SetupPlayer(
                                         i + 1, pl.name, pl.stack,
                                         isDealer = if (wasDealer) i == 0 else pl.isDealer,
@@ -670,7 +778,7 @@ fun gameSetupScreen(view: ViewGui) {
                 }
             }
 
-            if (players.size < 2) {
+            if (view.setupPlayersList.size < 2) {
                 Spacer(Modifier.height(12.dp))
                 Text("Minimum 2 players required", fontSize = 16.sp, color = Color(0xFF9E9E9E))
             }
@@ -678,14 +786,14 @@ fun gameSetupScreen(view: ViewGui) {
             Spacer(Modifier.height(32.dp))
             Button(
                 onClick = {
-                    view.gameName = gameNameInput
-                    view.setupDealerIndex = players.indexOfFirst { it.isDealer }
-                    view.submitInt(sbText.toInt())
-                    view.submitInt(bbText.toInt())
-                    players.forEachIndexed { i, p ->
+                    view.gameName = view.setupGameNameInput
+                    view.setupDealerIndex = view.setupPlayersList.indexOfFirst { it.isDealer }
+                    view.submitInt(view.setupSBText.toInt())
+                    view.submitInt(view.setupBBText.toInt())
+                    view.setupPlayersList.forEachIndexed { i, p ->
                         view.submitString(p.name)
                         view.submitInt(p.stack)
-                        view.submitBoolean(i < players.size - 1)
+                        view.submitBoolean(i < view.setupPlayersList.size - 1)
                     }
                     view.gameStarted = true
                 },
