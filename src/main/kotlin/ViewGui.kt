@@ -1,30 +1,68 @@
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.graphics.*
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.*
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.util.UUID
 import kotlin.system.exitProcess
 
 private val suitSymbol: (Suit) -> String = {
-    when (it) { Suit.SPADES -> "\u2660"; Suit.HEARTS -> "\u2665"; Suit.DIAMONDS -> "\u2666"; Suit.CLUBS -> "\u2663" }
+    when (it) {
+        Suit.SPADES -> "\u2660"
+        Suit.HEARTS -> "\u2665"
+        Suit.DIAMONDS -> "\u2666"
+        Suit.CLUBS -> "\u2663"
+    }
 }
 private val suitColor: (Suit) -> Color = {
     if (it == Suit.HEARTS || it == Suit.DIAMONDS) Color(0xFFE53935) else Color.Black
@@ -121,29 +159,72 @@ class ViewGui(private val logger: Logger) : View {
         toCall = curBet - contrib
     }
 
-    override fun printOnlyOnePlayerLeft() { message = "Only one player left!" }
-    override fun printBettingRoundStart(startingPlayer: Player) { message = "Betting round: ${startingPlayer.name}" }
-    override fun printBettingRoundComplete() { message = "Betting round complete" }
-    override fun printToCall(amount: Int) { toCall = amount }
-    override fun printInvalidAction() { message = "Invalid action!" }
-    override fun printAllPlayersFolded() { message = "All players folded!"; gameState = GameState.SHOWDOWN; showdownRevealed = true; _handRanks.clear(); handRanks = emptyMap() }
-    override fun printShowdownStart() { gameState = GameState.SHOWDOWN; message = "SHOWDOWN!"; showdownRevealed = true; _handRanks.clear(); handRanks = emptyMap() }
-    override fun printCommunityCards(cards: List<Card>) { communityCards = cards }
+    override fun printOnlyOnePlayerLeft() {
+        message = "Only one player left!"
+    }
+    override fun printBettingRoundStart(startingPlayer: Player) {
+        message = "Betting round: ${startingPlayer.name}"
+    }
+    override fun printBettingRoundComplete() {
+        message = "Betting round complete"
+    }
+    override fun printToCall(amount: Int) {
+        toCall = amount
+    }
+    override fun printInvalidAction() {
+        message = "Invalid action!"
+    }
+    override fun printAllPlayersFolded() {
+        message = "All players folded!"
+        gameState = GameState.SHOWDOWN
+        showdownRevealed = true
+        _handRanks.clear()
+        handRanks = emptyMap()
+    }
+    override fun printShowdownStart() {
+        gameState = GameState.SHOWDOWN
+        message = "SHOWDOWN!"
+        showdownRevealed = true
+        _handRanks.clear()
+        handRanks = emptyMap()
+    }
+    override fun printCommunityCards(cards: List<Card>) {
+        communityCards = cards
+    }
     override fun printHandRank(player: Player, rank: HandRank) {
         _handRanks[player.getId()] = rank
         handRanks = _handRanks.toMap()
     }
-    override fun printMessage(msg: String) { this.message = msg }
-    override fun printError(msg: String) { message = "ERROR: $msg" }
+    override fun printMessage(msg: String) {
+        this.message = msg
+    }
+    override fun printError(msg: String) {
+        message = "ERROR: $msg"
+    }
     override fun printPlayerStatus(player: Player) {}
     override fun printAllPlayersStatus(players: List<Player>) {}
-    override fun printGameSaved() { message = "Game saved!" }
-    override fun printGameLoaded() { message = "Game loaded!" }
-    override fun printGameEnded() { gameState = GameState.GAME_OVER; message = "GAME OVER!" }
-    override fun printGameAlreadyEnded() { message = "Game already over!" }
-    override fun dealFlop() { message = "Dealing Flop..." }
-    override fun dealTurn() { message = "Dealing Turn..." }
-    override fun dealRiver() { message = "Dealing River..." }
+    override fun printGameSaved() {
+        message = "Game saved!"
+    }
+    override fun printGameLoaded() {
+        message = "Game loaded!"
+    }
+    override fun printGameEnded() {
+        gameState = GameState.GAME_OVER
+        message = "GAME OVER!"
+    }
+    override fun printGameAlreadyEnded() {
+        message = "Game already over!"
+    }
+    override fun dealFlop() {
+        message = "Dealing Flop..."
+    }
+    override fun dealTurn() {
+        message = "Dealing Turn..."
+    }
+    override fun dealRiver() {
+        message = "Dealing River..."
+    }
 
     override fun printWinners(winners: List<Player>) {
         message = "Winners: ${winners.joinToString(", ") { it.name }}"
@@ -242,7 +323,10 @@ class ViewGui(private val logger: Logger) : View {
 }
 
 enum class GameState {
-    WAITING, PLAYER_TURN, SHOWDOWN, GAME_OVER
+    WAITING,
+    PLAYER_TURN,
+    SHOWDOWN,
+    GAME_OVER,
 }
 
 // GUI Entry point
@@ -255,15 +339,15 @@ fun main() = application {
     Window(
         onCloseRequest = { view.showExitDialog = true },
         title = "Texas Hold'em Poker",
-        state = rememberWindowState(width = 1920.dp, height = 1200.dp)
+        state = rememberWindowState(width = 1920.dp, height = 1200.dp),
     ) {
-        PokerApp(view, controller)
+        pokerApp(view, controller)
     }
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun PokerApp(view: ViewGui, controller: Controller) {
+fun pokerApp(view: ViewGui, controller: Controller) {
     if (view.gameStarted) {
         LaunchedEffect(Unit) {
             withContext(Dispatchers.Default) {
@@ -311,29 +395,29 @@ fun PokerApp(view: ViewGui, controller: Controller) {
             },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color(0xFF1a1a1a),
-                titleContentColor = Color.White
-            )
+                titleContentColor = Color.White,
+            ),
         )
 
         when (view.gameState) {
             GameState.WAITING -> {
                 if (view.setupPlayers.isEmpty()) {
-                    GameSetupScreen(view)
+                    gameSetupScreen(view)
                 } else {
-                    PokerTable(view)
+                    pokerTable(view)
                 }
             }
             GameState.PLAYER_TURN, GameState.SHOWDOWN -> {
-                PokerTable(view)
+                pokerTable(view)
             }
             GameState.GAME_OVER -> {
-                GameOverScreen(view)
+                gameOverScreen(view)
             }
         }
     }
 
     if (view.showDialog && view.setupPlayers.isNotEmpty()) {
-        InputDialog(view)
+        inputDialog(view)
     }
 
     if (view.showExitDialog) {
@@ -344,20 +428,24 @@ fun PokerApp(view: ViewGui, controller: Controller) {
             textContentColor = Color(0xFFBDBDBD),
             iconContentColor = Color.White,
             title = { Text("Exit", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to exit? Unsaved data will not be saved.",
-                color = Color(0xFFBDBDBD)) },
+            text = {
+                Text(
+                    "Are you sure you want to exit? Unsaved data will not be saved.",
+                    color = Color(0xFFBDBDBD),
+                )
+            },
             confirmButton = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = { exitProcess(0) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
                     ) { Text("Yes") }
                     Button(
                         onClick = { view.showExitDialog = false },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF616161))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF616161)),
                     ) { Text("No") }
                 }
-            }
+            },
         )
     }
 }
@@ -366,7 +454,7 @@ data class SetupPlayer(val id: Int, val name: String, val stack: Int, val isDeal
 data class PersistedPlayer(val name: String, val stack: Int, val isDealer: Boolean)
 
 @Composable
-fun GameSetupScreen(view: ViewGui) {
+fun gameSetupScreen(view: ViewGui) {
     var gameNameInput by remember { mutableStateOf(view.lastGameName) }
     var sbText by remember { mutableStateOf(view.lastSB.toString()) }
     var bbText by remember { mutableStateOf(view.lastBB.toString()) }
@@ -376,40 +464,46 @@ fun GameSetupScreen(view: ViewGui) {
                 view.lastPlayers.mapIndexed { i, p -> SetupPlayer(i + 1, p.name, p.stack, p.isDealer) }
             } else {
                 emptyList()
-            }
+            },
         )
     }
 
     val isValid = gameNameInput.isNotBlank() &&
-            sbText.toIntOrNull() != null && sbText.toIntOrNull()!! > 0 &&
-            bbText.toIntOrNull() != null && bbText.toIntOrNull()!! > 0 &&
-            players.size >= 2 && players.all { it.name.isNotBlank() && it.stack > 0 }
+        sbText.toIntOrNull() != null && sbText.toIntOrNull()!! > 0 &&
+        bbText.toIntOrNull() != null && bbText.toIntOrNull()!! > 0 &&
+        players.size >= 2 && players.all { it.name.isNotBlank() && it.stack > 0 }
 
     Box(modifier = Modifier.fillMaxSize().background(Color(0xFF0D1B2A)), contentAlignment = Alignment.TopCenter) {
         Column(
             modifier = Modifier.fillMaxWidth(0.5f).padding(top = 40.dp).verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Header with suit decorations
-            Text("\u2660 \u2665 \u2663 \u2666",
+            Text(
+                "\u2660 \u2665 \u2663 \u2666",
                 fontSize = 28.sp,
                 color = Color(0xFF4CAF50),
-                letterSpacing = 8.sp)
+                letterSpacing = 8.sp,
+            )
             Spacer(Modifier.height(8.dp))
-            Text("Game Setup",
+            Text(
+                "Game Setup",
                 fontSize = 52.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White)
+                color = Color.White,
+            )
             Spacer(Modifier.height(4.dp))
-            Text("Configure your poker game",
+            Text(
+                "Configure your poker game",
                 fontSize = 18.sp,
-                color = Color(0xFF9E9E9E))
+                color = Color(0xFF9E9E9E),
+            )
             Spacer(Modifier.height(32.dp))
 
             // Form card
             Card(
                 colors = CardDefaults.cardColors(Color(0xFF1B2838)),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
             ) {
                 Column(modifier = Modifier.padding(24.dp)) {
                     OutlinedTextField(
@@ -420,30 +514,45 @@ fun GameSetupScreen(view: ViewGui) {
                         modifier = Modifier.fillMaxWidth(),
                         textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF555555),
-                            cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color(0xFF9E9E9E)
-                        )
+                            focusedBorderColor = Color(0xFF4CAF50),
+                            unfocusedBorderColor = Color(0xFF555555),
+                            cursorColor = Color.White,
+                            focusedLabelColor = Color(0xFF4CAF50),
+                            unfocusedLabelColor = Color(0xFF9E9E9E),
+                        ),
                     )
                     Spacer(Modifier.height(16.dp))
 
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         OutlinedTextField(
-                            value = sbText, onValueChange = { sbText = it.filter { c -> c.isDigit() } },
-                            label = { Text("Small Blind") }, singleLine = true, modifier = Modifier.weight(1f),
+                            value = sbText,
+                            onValueChange = { sbText = it.filter { c -> c.isDigit() } },
+                            label = { Text("Small Blind") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
                             textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF555555),
-                                cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color(0xFF9E9E9E)
-                            )
+                                focusedBorderColor = Color(0xFF4CAF50),
+                                unfocusedBorderColor = Color(0xFF555555),
+                                cursorColor = Color.White,
+                                focusedLabelColor = Color(0xFF4CAF50),
+                                unfocusedLabelColor = Color(0xFF9E9E9E),
+                            ),
                         )
                         OutlinedTextField(
-                            value = bbText, onValueChange = { bbText = it.filter { c -> c.isDigit() } },
-                            label = { Text("Big Blind") }, singleLine = true, modifier = Modifier.weight(1f),
+                            value = bbText,
+                            onValueChange = { bbText = it.filter { c -> c.isDigit() } },
+                            label = { Text("Big Blind") },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f),
                             textStyle = TextStyle(color = Color.White, fontSize = 20.sp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF555555),
-                                cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color(0xFF9E9E9E)
-                            )
+                                focusedBorderColor = Color(0xFF4CAF50),
+                                unfocusedBorderColor = Color(0xFF555555),
+                                cursorColor = Color.White,
+                                focusedLabelColor = Color(0xFF4CAF50),
+                                unfocusedLabelColor = Color(0xFF9E9E9E),
+                            ),
                         )
                     }
                 }
@@ -463,7 +572,7 @@ fun GameSetupScreen(view: ViewGui) {
                             players = players + SetupPlayer(newId, "", 1000, isDealer = players.isEmpty())
                         },
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFF4CAF50)),
-                        border = BorderStroke(1.dp, Color(0xFF4CAF50))
+                        border = BorderStroke(1.dp, Color(0xFF4CAF50)),
                     ) { Text("+ Add Player", fontSize = 16.sp) }
                 }
             }
@@ -473,17 +582,17 @@ fun GameSetupScreen(view: ViewGui) {
                 players.forEachIndexed { idx, p ->
                     Card(
                         colors = CardDefaults.cardColors(Color(0xFF1B2838)),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(12.dp),
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
                             // Number badge
                             Box(
                                 modifier = Modifier.width(36.dp).height(36.dp)
                                     .background(Color(0xFF4CAF50), RoundedCornerShape(18.dp)),
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
                                 Text("${p.id}", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
                             }
@@ -493,14 +602,18 @@ fun GameSetupScreen(view: ViewGui) {
                                 modifier = Modifier.width(36.dp).height(36.dp)
                                     .background(
                                         if (p.isDealer) Color(0xFFFFD700) else Color(0xFF555555),
-                                        RoundedCornerShape(18.dp)
+                                        RoundedCornerShape(18.dp),
                                     ).clickable {
                                         players = players.mapIndexed { i, pl -> pl.copy(isDealer = i == idx) }
                                     },
-                                contentAlignment = Alignment.Center
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Text("D", fontWeight = FontWeight.Bold, fontSize = 18.sp,
-                                    color = if (p.isDealer) Color.Black else Color.White)
+                                Text(
+                                    "D",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = if (p.isDealer) Color.Black else Color.White,
+                                )
                             }
                             Spacer(Modifier.width(12.dp))
                             OutlinedTextField(
@@ -508,13 +621,17 @@ fun GameSetupScreen(view: ViewGui) {
                                 onValueChange = { newName ->
                                     players = players.mapIndexed { i, pl -> if (i == idx) pl.copy(name = newName) else pl }
                                 },
-                                label = { Text("Name") }, singleLine = true,
+                                label = { Text("Name") },
+                                singleLine = true,
                                 modifier = Modifier.weight(1f),
                                 textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF555555),
-                                    cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color(0xFF9E9E9E)
-                                )
+                                    focusedBorderColor = Color(0xFF4CAF50),
+                                    unfocusedBorderColor = Color(0xFF555555),
+                                    cursorColor = Color.White,
+                                    focusedLabelColor = Color(0xFF4CAF50),
+                                    unfocusedLabelColor = Color(0xFF9E9E9E),
+                                ),
                             )
                             Spacer(Modifier.width(8.dp))
                             OutlinedTextField(
@@ -523,21 +640,27 @@ fun GameSetupScreen(view: ViewGui) {
                                     val v = newStack.filter { c -> c.isDigit() }.toIntOrNull() ?: 0
                                     players = players.mapIndexed { i, pl -> if (i == idx) pl.copy(stack = v) else pl }
                                 },
-                                label = { Text("Stack") }, singleLine = true,
+                                label = { Text("Stack") },
+                                singleLine = true,
                                 modifier = Modifier.width(120.dp),
                                 textStyle = TextStyle(color = Color.White, fontSize = 18.sp),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF555555),
-                                    cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color(0xFF9E9E9E)
-                                )
+                                    focusedBorderColor = Color(0xFF4CAF50),
+                                    unfocusedBorderColor = Color(0xFF555555),
+                                    cursorColor = Color.White,
+                                    focusedLabelColor = Color(0xFF4CAF50),
+                                    unfocusedLabelColor = Color(0xFF9E9E9E),
+                                ),
                             )
                             Spacer(Modifier.width(8.dp))
                             IconButton(onClick = {
                                 val wasDealer = players[idx].isDealer
                                 val filtered = players.filterIndexed { i, _ -> i != idx }
                                 players = filtered.mapIndexed { i, pl ->
-                                    SetupPlayer(i + 1, pl.name, pl.stack,
-                                        isDealer = if (wasDealer) i == 0 else pl.isDealer)
+                                    SetupPlayer(
+                                        i + 1, pl.name, pl.stack,
+                                        isDealer = if (wasDealer) i == 0 else pl.isDealer,
+                                    )
                                 }
                             }) {
                                 Icon(Icons.Default.Close, "Delete", tint = Color(0xFFE53935))
@@ -570,7 +693,7 @@ fun GameSetupScreen(view: ViewGui) {
                 modifier = Modifier.fillMaxWidth().height(60.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp),
             ) { Text("Start Game", fontSize = 26.sp, fontWeight = FontWeight.Bold) }
 
             Spacer(Modifier.height(48.dp))
@@ -579,7 +702,7 @@ fun GameSetupScreen(view: ViewGui) {
 }
 
 @Composable
-fun InputDialog(view: ViewGui) {
+fun inputDialog(view: ViewGui) {
     val isBoolean = view.dialogTitle.endsWith("?")
     val isString = !isBoolean && view.dialogTitle.startsWith("Enter player name")
     var text by remember { mutableStateOf(view.dialogInput) }
@@ -602,9 +725,12 @@ fun InputDialog(view: ViewGui) {
                     singleLine = true,
                     textStyle = TextStyle(color = Color.White),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color(0xFF4CAF50), unfocusedBorderColor = Color(0xFF555555),
-                        cursorColor = Color.White, focusedLabelColor = Color(0xFF4CAF50), unfocusedLabelColor = Color(0xFF9E9E9E)
-                    )
+                        focusedBorderColor = Color(0xFF4CAF50),
+                        unfocusedBorderColor = Color(0xFF555555),
+                        cursorColor = Color.White,
+                        focusedLabelColor = Color(0xFF4CAF50),
+                        unfocusedLabelColor = Color(0xFF9E9E9E),
+                    ),
                 )
             }
         },
@@ -613,11 +739,11 @@ fun InputDialog(view: ViewGui) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(
                         onClick = { view.submitBoolean(true) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
                     ) { Text("Yes") }
                     Button(
                         onClick = { view.submitBoolean(false) },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF616161))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF616161)),
                     ) { Text("No") }
                 }
             } else {
@@ -630,35 +756,35 @@ fun InputDialog(view: ViewGui) {
                             if (value != null && value > 0) view.submitInt(value)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
                 ) { Text("OK") }
             }
-        }
+        },
     )
 }
 
 @Composable
-fun PokerTable(view: ViewGui) {
+fun pokerTable(view: ViewGui) {
     Box(
         modifier = Modifier.fillMaxSize().padding(12.dp),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Box(
             modifier = Modifier.fillMaxSize()
                 .background(Color(0xFF3E2723), RoundedCornerShape(80.dp))
-                .padding(24.dp)
+                .padding(24.dp),
         ) {
             // Felt interior
             Box(
                 modifier = Modifier.fillMaxSize()
                     .background(Color(0xFF1B5E20), RoundedCornerShape(64.dp))
-                    .padding(16.dp)
+                    .padding(16.dp),
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     // Opponent cards row
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                        horizontalArrangement = Arrangement.Center
+                        horizontalArrangement = Arrangement.Center,
                     ) {
                         val showAll = view.gameState == GameState.SHOWDOWN || view.showdownRevealed
                         view.players.filter {
@@ -666,69 +792,86 @@ fun PokerTable(view: ViewGui) {
                         }.forEach { player ->
                             val isThisPlayer = player == view.currentPlayer
                             val show = showAll || (isThisPlayer && view.showHoleCards)
-                            PlayerCard(player,
+                            playerCard(
+                                player,
                                 isDealer = view.dealerIndex == view.players.indexOf(player),
                                 showCards = show,
-                                onCardClick = if (isThisPlayer && !showAll) {{ view.toggleHoleCards() }} else null,
+                                onCardClick = if (isThisPlayer && !showAll) {
+                                    { view.toggleHoleCards() }
+                                } else {
+                                    null
+                                },
                                 isCurrentPlayer = isThisPlayer,
-                                handRank = view.handRanks[player.getId()])
+                                handRank = view.handRanks[player.getId()],
+                            )
                         }
                     }
 
                     // Center area
                     Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Column(modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
                             // Pot chip display
                             Box(
                                 modifier = Modifier.background(
-                                    Color(0x33FFFFFF), RoundedCornerShape(16.dp)
-                                ).padding(horizontal = 32.dp, vertical = 12.dp)
+                                    Color(0x33FFFFFF),
+                                    RoundedCornerShape(16.dp),
+                                ).padding(horizontal = 32.dp, vertical = 12.dp),
                             ) {
-                                Text("Pot: ${view.pot}",
+                                Text(
+                                    "Pot: ${view.pot}",
                                     fontSize = 56.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFFD700))
+                                    color = Color(0xFFFFD700),
+                                )
                             }
                             Spacer(Modifier.height(32.dp))
 
                             // Community cards
-                            Row(horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.align(Alignment.CenterHorizontally),
+                            ) {
                                 view.communityCards.forEach { card ->
-                                    CardView(card)
+                                    cardView(card)
                                 }
                                 repeat(5 - view.communityCards.size) {
-                                    CardPlaceholder()
+                                    cardPlaceholder()
                                 }
                             }
 
                             Spacer(Modifier.height(24.dp))
 
                             // Message
-                            Text(view.message,
+                            Text(
+                                view.message,
                                 fontSize = 36.sp,
                                 color = Color.White,
-                                fontWeight = if (view.gameState == GameState.SHOWDOWN) FontWeight.Bold else FontWeight.Normal)
+                                fontWeight = if (view.gameState == GameState.SHOWDOWN) FontWeight.Bold else FontWeight.Normal,
+                            )
                         }
                     }
 
                     // Bottom area - current player
                     Column(
                         modifier = Modifier.fillMaxWidth().height(480.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         view.currentPlayer?.let { player ->
                             val show = view.gameState == GameState.SHOWDOWN || view.showdownRevealed || view.showHoleCards
-                            PlayerCard(player,
+                            playerCard(
+                                player,
                                 isDealer = view.dealerIndex == view.players.indexOf(player),
                                 showCards = show,
                                 onCardClick = { view.toggleHoleCards() },
                                 isCurrentPlayer = true,
-                                handRank = view.handRanks[player.getId()])
+                                handRank = view.handRanks[player.getId()],
+                            )
                         }
                         Spacer(Modifier.height(12.dp))
-                        ActionButtons(view)
+                        actionButtons(view)
                     }
                 }
             }
@@ -745,76 +888,86 @@ private val actionColors = mapOf(
 )
 
 @Composable
-fun ActionButtons(view: ViewGui) {
+fun actionButtons(view: ViewGui) {
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        PokerActionButton("Fold", Action.FOLD) { view.submitAction(Action.FOLD) }
+        pokeractionButton("Fold", Action.FOLD) { view.submitAction(Action.FOLD) }
         if (view.toCall > 0) {
-            PokerActionButton("Call ${view.toCall}", Action.CALL) { view.submitAction(Action.CALL) }
+            pokeractionButton("Call ${view.toCall}", Action.CALL) { view.submitAction(Action.CALL) }
         } else {
-            PokerActionButton("Check", Action.CHECK) { view.submitAction(Action.CHECK) }
+            pokeractionButton("Check", Action.CHECK) { view.submitAction(Action.CHECK) }
         }
-        PokerActionButton("Bet", Action.BET) { view.submitAction(Action.BET) }
-        PokerActionButton("All-in", Action.ALL_IN) { view.submitAction(Action.ALL_IN) }
+        pokeractionButton("Bet", Action.BET) { view.submitAction(Action.BET) }
+        pokeractionButton("All-in", Action.ALL_IN) { view.submitAction(Action.ALL_IN) }
     }
 }
 
 @Composable
-fun PokerActionButton(text: String, action: Action, onClick: () -> Unit) {
+fun pokeractionButton(text: String, action: Action, onClick: () -> Unit) {
     val color = actionColors[action] ?: Color.Gray
     Button(
         onClick = onClick,
         modifier = Modifier.width(200.dp).height(80.dp),
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = color),
-        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
     ) {
         Text(text, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = Color.White)
     }
 }
 
 @Composable
-fun PlayerCard(player: Player, isDealer: Boolean, showCards: Boolean = false, onCardClick: (() -> Unit)? = null, isCurrentPlayer: Boolean = false, handRank: HandRank? = null) {
+fun playerCard(player: Player, isDealer: Boolean, showCards: Boolean = false, onCardClick: (() -> Unit)? = null, isCurrentPlayer: Boolean = false, handRank: HandRank? = null) {
     val borderColor = if (isCurrentPlayer) Color(0xFFFFD700) else Color(0xFF555555)
     val borderWidth = if (isCurrentPlayer) 3.dp else 1.dp
     val bg = if (isCurrentPlayer) Color(0xFF2A2A2A) else Color(0xFF1E1E1E)
     Card(
         modifier = Modifier.width(320.dp).height(320.dp).then(
-            Modifier.border(borderWidth, borderColor, RoundedCornerShape(16.dp))
+            Modifier.border(borderWidth, borderColor, RoundedCornerShape(16.dp)),
         ).then(
-            if (onCardClick != null) Modifier.clickable { onCardClick() } else Modifier
+            if (onCardClick != null) Modifier.clickable { onCardClick() } else Modifier,
         ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(bg)
+        colors = CardDefaults.cardColors(bg),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(player.name, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color.White,
-                    modifier = Modifier.weight(1f))
+                Text(
+                    player.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    color = Color.White,
+                    modifier = Modifier.weight(1f),
+                )
                 if (isDealer) {
                     Box(
                         modifier = Modifier.background(Color(0xFFFFD700), RoundedCornerShape(4.dp))
-                            .padding(horizontal = 10.dp, vertical = 2.dp)
+                            .padding(horizontal = 10.dp, vertical = 2.dp),
                     ) {
                         Text("DEALER", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
                     }
                 }
             }
             Spacer(Modifier.height(4.dp))
-            Text("\uD83D\uDCB0 ${player.getStack()}",
-                fontSize = 24.sp, color = Color(0xFFFFD700))
+            Text(
+                "\uD83D\uDCB0 ${player.getStack()}",
+                fontSize = 24.sp,
+                color = Color(0xFFFFD700),
+            )
             handRank?.let {
                 Spacer(Modifier.height(4.dp))
                 Text(formatHandRank(it), fontSize = 18.sp, color = Color(0xFF00BCD4), fontWeight = FontWeight.SemiBold)
             }
             if (player.getHole().isNotEmpty()) {
                 Spacer(Modifier.height(12.dp))
-                Row(modifier = Modifier.fillMaxWidth(),
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically) {
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     if (showCards) {
-                        player.getHole().forEach { card -> MiniCard(card) }
+                        player.getHole().forEach { card -> miniCard(card) }
                     } else {
-                        repeat(player.getHole().size) { CardBack() }
+                        repeat(player.getHole().size) { cardBack() }
                     }
                 }
             }
@@ -840,26 +993,26 @@ fun formatHandRank(rank: HandRank): String {
 }
 
 @Composable
-fun CardBack() {
+fun cardBack() {
     Box(
         modifier = Modifier.width(100.dp).height(150.dp)
             .background(Color(0xFF1a3a8a), RoundedCornerShape(6.dp))
             .border(1.dp, Color(0xFF0d2860), RoundedCornerShape(6.dp)),
-        contentAlignment = Alignment.Center
+        contentAlignment = Alignment.Center,
     ) {
         Text("\u2660", fontSize = 48.sp, color = Color(0x44FFFFFF))
     }
 }
 
 @Composable
-fun CardView(card: Card) {
+fun cardView(card: Card) {
     val color = suitColor(card.suit)
     val sym = suitSymbol(card.suit)
     Card(
         modifier = Modifier.width(160.dp).height(240.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(Color(0xFFF5F5F0)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
     ) {
         Box(modifier = Modifier.fillMaxSize().padding(8.dp)) {
             // Top-left corner
@@ -870,29 +1023,31 @@ fun CardView(card: Card) {
             // Bottom-right corner (inverted)
             Column(
                 modifier = Modifier.align(Alignment.BottomEnd).rotate(180f),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(card.rank.toString(), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = color)
                 Text(sym, fontSize = 20.sp, color = color)
             }
             // Center suit
-            Text(sym,
+            Text(
+                sym,
                 fontSize = 80.sp,
                 color = color,
-                modifier = Modifier.align(Alignment.Center))
+                modifier = Modifier.align(Alignment.Center),
+            )
         }
     }
 }
 
 @Composable
-fun MiniCard(card: Card) {
+fun miniCard(card: Card) {
     val color = suitColor(card.suit)
     val sym = suitSymbol(card.suit)
     Box(
         modifier = Modifier.width(100.dp).height(150.dp)
             .background(Color(0xFFF5F5F0), RoundedCornerShape(6.dp))
-            .border(1.dp, Color(0xFFBDBDBD), RoundedCornerShape(6.dp)), 
-        contentAlignment = Alignment.Center
+            .border(1.dp, Color(0xFFBDBDBD), RoundedCornerShape(6.dp)),
+        contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(card.rank.toString(), fontSize = 32.sp, fontWeight = FontWeight.Bold, color = color)
@@ -902,44 +1057,50 @@ fun MiniCard(card: Card) {
 }
 
 @Composable
-fun CardPlaceholder() {
+fun cardPlaceholder() {
     Card(
         modifier = Modifier.width(160.dp).height(240.dp),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(Color(0xFF1a1a1a))
+        colors = CardDefaults.cardColors(Color(0xFF1a1a1a)),
     ) {
-        Box(modifier = Modifier.fillMaxSize().border(2.dp, Color(0xFF333333), RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.fillMaxSize().border(2.dp, Color(0xFF333333), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center,
+        ) {
             Text("\u2660", fontSize = 48.sp, color = Color(0xFF333333))
         }
     }
 }
 
 @Composable
-fun ActionButton(text: String, color: Color, onClick: () -> Unit) {
+fun actionButton(text: String, color: Color, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         modifier = Modifier.width(240.dp).height(100.dp),
-        colors = ButtonDefaults.buttonColors(containerColor = color)
+        colors = ButtonDefaults.buttonColors(containerColor = color),
     ) {
         Text(text, fontSize = 30.sp, fontWeight = FontWeight.Bold)
     }
 }
 
 @Composable
-fun GameOverScreen(view: ViewGui) {
+fun gameOverScreen(view: ViewGui) {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text("\u2660 \u2665 \u2663 \u2666", fontSize = 32.sp, color = Color(0xFF4CAF50), letterSpacing = 8.sp)
             Spacer(Modifier.height(16.dp))
-            Text("GAME OVER",
+            Text(
+                "GAME OVER",
                 fontSize = 72.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFFFD700))
+                color = Color(0xFFFFD700),
+            )
             Spacer(modifier = Modifier.height(16.dp))
-            Text(view.message,
+            Text(
+                view.message,
                 fontSize = 28.sp,
-                color = Color(0xFFBDBDBD))
+                color = Color(0xFFBDBDBD),
+            )
         }
     }
 }
